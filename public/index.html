@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE LOOP — pi Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=JetBrains+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg-screen:#0A0D12; --bg-panel:#10151C; --bg-elevated:#151C25; --bg-inset:#0C1117;
+  --grid-line:#1A2330; --border:#223042; --border-strong:#31455C;
+  --text-primary:#E8EEF6; --text-secondary:#9FB0C3; --text-tertiary:#64748B;
+  --signal-green:#2DE0A0; --signal-green-dim:rgba(45,224,160,.35);
+  --signal-cyan:#4FD1FF; --signal-amber:#FFB224; --signal-red:#FF5C5C;
+  --glow-green:0 0 0 1px rgba(45,224,160,.4),0 0 12px rgba(45,224,160,.35),0 0 32px rgba(45,224,160,.18);
+  --glow-amber:0 0 0 1px rgba(255,178,36,.4),0 0 12px rgba(255,178,36,.3);
+  --glow-red:0 0 0 1px rgba(255,92,92,.4),0 0 14px rgba(255,92,92,.3);
+  --radius-sm:2px; --radius-md:4px; --radius-lg:6px;
+  --font-display:"Chakra Petch","Noto Sans SC",sans-serif;
+  --font-body:"Sora","Noto Sans SC","PingFang SC",sans-serif;
+  --font-mono:"JetBrains Mono","Consolas",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg-screen); color:var(--text-primary); font-family:var(--font-body);
+  font-size:13px; line-height:1.5; display:flex; flex-direction:column; overflow:hidden;
+  background-image:linear-gradient(var(--grid-line) 1px, transparent 1px),linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+::selection{background:rgba(45,224,160,.25)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+:focus-visible{outline:2px solid var(--signal-green);outline-offset:2px}
+/* ============ 顶栏 ============ */
+#topbar{height:44px;flex:0 0 44px;display:flex;align-items:center;gap:var(--space-4,16px);padding:0 16px;background:var(--bg-panel);border-bottom:1px solid var(--border);position:relative;z-index:5}
+#topbar .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:.5px}
+#topbar .logo .sig-dot{width:8px;height:8px;border-radius:50%;background:var(--signal-green);box-shadow:var(--glow-green)}
+#topbar .path{font-family:var(--font-mono);font-size:12px;color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#topbar .spacer{flex:1}
+.badge{font-family:var(--font-mono);font-size:10.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);border:1px solid var(--border);border-radius:2px;padding:2px 8px;background:var(--bg-inset)}
+.badge.hot{border-color:var(--signal-green);color:var(--signal-green)}
+#statuslight{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--text-tertiary)}
+#statuslight .dot{width:8px;height:8px;border-radius:50%;background:var(--text-tertiary);transition:all .25s}
+body.st-idle #statuslight .dot{background:var(--text-tertiary)}
+body.st-busy #statuslight .dot{background:var(--signal-green);box-shadow:var(--glow-green);animation:breath 1.8s ease-in-out infinite}
+body.st-wait #statuslight .dot{background:var(--signal-amber);box-shadow:var(--glow-amber);animation:breath 1.8s ease-in-out infinite}
+body.st-err #statuslight .dot{background:var(--signal-red);box-shadow:var(--glow-red)}
+#progressline{position:absolute;left:0;bottom:-1px;height:2px;width:0;background:var(--signal-green);box-shadow:var(--glow-green);transition:width .4s linear}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;transition:box-shadow .3s}
+body.st-busy::after{box-shadow:inset 0 0 0 1px rgba(45,224,160,.25)}
+body.st-wait::after{box-shadow:inset 0 0 0 1px rgba(255,178,36,.25)}
+body.st-err::after{box-shadow:inset 0 0 0 1px rgba(255,92,92,.35)}
+/* ============ 三栏 ============ */
+#main{flex:1;display:flex;min-height:0}
+.col{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.colhead{flex:0 0 34px;display:flex;align-items:center;gap:8px;padding:0 16px;font-family:var(--font-display);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);border-bottom:1px solid var(--border);background:var(--bg-panel)}
+.colhead .tick{width:4px;height:14px;background:var(--signal-green);opacity:.7}
+#archcol{flex:0 0 50%;border-right:1px solid var(--border)}
+#archstatus{flex:0 0 22px;display:flex;align-items:center;gap:6px;padding:0 12px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal-green);background:var(--bg-inset);border-bottom:1px solid var(--border);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#archstatus .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--signal-green);margin-right:6px;animation:breath 1s infinite}
+#archstatus .warn{color:var(--signal-amber)}
+#archcanvas{flex:1;min-height:0;overflow:auto;display:flex;background-image:radial-gradient(circle, var(--grid-line) 1px, transparent 1px);background-size:12px 12px}
+#archwrap{flex:1;min-width:760px;min-height:480px;display:flex;align-items:center;justify-content:center;padding:12px}
+#archwrap svg{width:100%;height:100%;display:block}
+.arch{font-family:var(--font-mono)}
+.arch .grp{fill:#8FA3BC;font-size:12.5px;letter-spacing:.1em;font-weight:500}
+.arch .nt{fill:var(--text-primary);font-size:15px;font-weight:600}
+.arch .ns{fill:var(--text-secondary);font-size:13px}
+.arch .rail{fill:var(--text-tertiary);font-size:13px}
+.arch .box{fill:url(#boxGrad);stroke:#3D5A7A;stroke-width:1.5;rx:6}
+.arch .loopbox{fill:rgba(22,32,45,.72);stroke:#4A6A8C;stroke-width:1.5;stroke-dasharray:7 5}
+.arch .flow{fill:none;stroke:#4A6A8C;stroke-width:2;filter:drop-shadow(0 0 2.5px rgba(74,106,140,.45))}
+.arch .flow.dash{stroke-dasharray:5 3}
+.arch .head{fill:#4A6A8C}
+.arch .diamond{fill:url(#diaGrad);stroke:#3D5A7A;stroke-width:1.5}
+.arch .flowlbl{fill:var(--text-secondary);font-size:13px}
+/* 仪器风 v5：表头/编号/LED/chip */
+.arch .hdr{stroke-width:3}
+.arch .hdr-cyan{stroke:#4FD1FF}
+.arch .hdr-amber{stroke:#FFB224}
+.arch .hdr-green{stroke:#2DE0A0}
+.arch .hdr-gray{stroke:#31455C}
+.arch .tagid{fill:#5B6B80;font-size:9.5px;letter-spacing:.16em}
+.arch .led{fill:#64748B}
+.arch .led.on{fill:#2DE0A0;filter:drop-shadow(0 0 3px rgba(45,224,160,.8))}
+.arch .led.amb{fill:#FFB224;filter:drop-shadow(0 0 3px rgba(255,178,36,.8))}
+.arch .chip{fill:#0C1117;stroke:#31455C;stroke-width:1}
+.arch .chip-txt{fill:#9FB0C3;font-size:11.5px;letter-spacing:.04em}
+.arch .pipe{fill:#4FD1FF;font-size:11px}
+   .arch .gridly{pointer-events:none}
+/* 仪器风 v5：表头/编号/LED/chip */
+.arch .hdr{stroke-width:3}
+.arch .hdr-cyan{stroke:#4FD1FF}
+.arch .hdr-amber{stroke:#FFB224}
+.arch .hdr-green{stroke:#2DE0A0}
+.arch .hdr-gray{stroke:#31455C}
+.arch .tagid{fill:#5B6B80;font-size:9.5px;letter-spacing:.16em}
+.arch .led{fill:#64748B}
+.arch .led.on{fill:#2DE0A0;filter:drop-shadow(0 0 3px rgba(45,224,160,.8))}
+.arch .led.amb{fill:#FFB224;filter:drop-shadow(0 0 3px rgba(255,178,36,.8))}
+.arch .chip{fill:#0C1117;stroke:#31455C;stroke-width:1}
+.arch .chip-txt{fill:#9FB0C3;font-size:11.5px;letter-spacing:.04em}
+.arch .pipe{fill:#4FD1FF;font-size:11px}
+   .arch .gridly{pointer-events:none}
+/* 仪器风 v5：表头/编号/LED/chip */
+.arch .hdr{stroke-width:3}
+.arch .hdr-cyan{stroke:#4FD1FF}
+.arch .hdr-amber{stroke:#FFB224}
+.arch .hdr-green{stroke:#2DE0A0}
+.arch .hdr-gray{stroke:#31455C}
+.arch .tagid{fill:#5B6B80;font-size:9.5px;letter-spacing:.16em}
+.arch .led{fill:#64748B}
+.arch .led.on{fill:#2DE0A0;filter:drop-shadow(0 0 3px rgba(45,224,160,.8))}
+.arch .led.amb{fill:#FFB224;filter:drop-shadow(0 0 3px rgba(255,178,36,.8))}
+.arch .chip{fill:#0C1117;stroke:#31455C;stroke-width:1}
+.arch .chip-txt{fill:#9FB0C3;font-size:11.5px;letter-spacing:.04em}
+.arch .pipe{fill:#4FD1FF;font-size:11px}
+   .arch .gridly{pointer-events:none}
+/* 仪器风 v5：表头/编号/LED/chip */
+.arch .hdr{stroke-width:3}
+.arch .hdr-cyan{stroke:#4FD1FF}
+.arch .hdr-amber{stroke:#FFB224}
+.arch .hdr-green{stroke:#2DE0A0}
+.arch .hdr-gray{stroke:#31455C}
+.arch .tagid{fill:#5B6B80;font-size:9.5px;letter-spacing:.16em}
+.arch .led{fill:#64748B}
+.arch .led.on{fill:#2DE0A0;filter:drop-shadow(0 0 3px rgba(45,224,160,.8))}
+.arch .led.amb{fill:#FFB224;filter:drop-shadow(0 0 3px rgba(255,178,36,.8))}
+.arch .chip{fill:#0C1117;stroke:#31455C;stroke-width:1}
+.arch .chip-txt{fill:#9FB0C3;font-size:11.5px;letter-spacing:.04em}
+.arch .pipe{fill:#4FD1FF;font-size:11px}
+.arch .gridly{pointer-events:none}
+.arch [data-node]{transition:all .25s}
+.arch [data-node].hot{stroke:var(--signal-green);stroke-width:2;fill:rgba(45,224,160,.08);filter:drop-shadow(0 0 6px rgba(45,224,160,.45))}
+.arch [data-node].hot .nt,.arch [data-node].hot .ns{fill:var(--text-primary)}
+.arch [data-node].hold{stroke:var(--signal-green);stroke-width:2;fill:rgba(45,224,160,.08);filter:drop-shadow(0 0 8px rgba(45,224,160,.5));animation:scan 1.2s linear infinite}
+.arch [data-node].cyan{stroke:var(--signal-cyan);stroke-width:2;fill:rgba(79,209,255,.07);filter:drop-shadow(0 0 6px rgba(79,209,255,.4))}
+.arch [data-node].amber{stroke:var(--signal-amber);stroke-width:2;fill:rgba(255,178,36,.07);filter:drop-shadow(0 0 6px rgba(255,178,36,.4));animation:breath 1.2s ease-in-out infinite}
+.arch [data-node].errf{stroke:var(--signal-red);stroke-width:2;fill:rgba(255,92,92,.1);filter:drop-shadow(0 0 8px rgba(255,92,92,.5));animation:errflash .4s steps(2) 2}
+.arch [data-node].breath{animation:breath 1.8s ease-in-out infinite}
+.arch [data-edge]{transition:stroke .25s}
+.arch [data-edge].live{stroke:var(--signal-green);stroke-width:2}
+.arch [data-edge].live .head{fill:var(--signal-green)}
+.arch [data-edge].live.dash{stroke:var(--signal-red);stroke-dasharray:4 3}
+.arch .pulse{stroke:var(--signal-green);stroke-width:2;stroke-dasharray:6 26;animation:edgeflow .6s linear forwards}
+.arch .pulse.dash{stroke:var(--signal-red)}
+/* ============ 中栏 ============ */
+#chatcol{flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
+#chatfeed{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%}
+.msg.user{align-self:flex-end;background:var(--bg-elevated);border-left:2px solid var(--signal-green);border-radius:6px;padding:8px 12px}
+.msg.assistant{align-self:flex-start;padding:2px 0;min-width:40%}
+.msg .caret{display:inline-block;width:7px;height:14px;background:var(--signal-green);vertical-align:-2px;animation:breath .8s infinite}
+.msg .foot{display:block;margin-top:6px;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary)}
+.think{width:100%;border-left:2px solid var(--signal-cyan);background:var(--bg-inset);border-radius:4px;overflow:hidden}
+.think summary{cursor:pointer;list-style:none;padding:6px 10px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--signal-cyan);user-select:none}
+.think summary::before{content:"▸ ";transition:transform .2s}
+.think[open] summary::before{transform:rotate(90deg);display:inline-block}
+.think .body{padding:0 10px 8px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);white-space:pre-wrap;max-height:180px;overflow-y:auto}
+.toolcard{width:100%;background:var(--bg-inset);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.toolcard .tchead{display:flex;align-items:center;gap:8px;padding:6px 10px;font-family:var(--font-mono);font-size:12px;border-bottom:1px solid var(--border);background:rgba(12,17,23,.6)}
+.toolcard .tchead .tname{color:var(--signal-green);font-weight:500}
+.toolcard .tchead .tid{color:var(--text-tertiary)}
+.toolcard .tchead .tstat{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)}
+.toolcard .tchead .tstat .sd{width:6px;height:6px;border-radius:50%;background:var(--text-tertiary)}
+.toolcard .tchead .tstat.ok .sd{background:var(--signal-green);box-shadow:0 0 6px var(--signal-green-dim)}
+.toolcard .tchead .tstat.err .sd{background:var(--signal-red);box-shadow:0 0 6px rgba(255,92,92,.5)}
+.toolcard .tchead .tstat.run .sd{background:var(--signal-amber);animation:breath .8s infinite}
+.toolcard .tcbody{padding:8px 10px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);white-space:pre-wrap;max-height:260px;overflow-y:auto}
+.toolcard.err{border-color:rgba(255,92,92,.5)}
+.toolcard.err .tchead{border-color:rgba(255,92,92,.4)}
+.toolcard.err .tname{color:var(--signal-red)}
+/* extension UI 交互卡 */
+.extcard{width:100%;background:var(--bg-inset);border:1px solid var(--signal-amber);border-radius:6px;overflow:hidden}
+.extcard .exhead{display:flex;align-items:center;gap:8px;padding:6px 10px;font-family:var(--font-mono);font-size:12px;border-bottom:1px solid var(--border);color:var(--signal-amber)}
+.extcard .exbody{padding:8px 10px;display:flex;flex-direction:column;gap:8px}
+.extcard select,.extcard textarea,.extcard input{background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:4px;color:var(--text-primary);font-family:var(--font-mono);font-size:12px;padding:6px 8px;width:100%}
+.extcard .exbtns{display:flex;gap:8px;justify-content:flex-end}
+.extcard button{background:transparent;border:1px solid var(--signal-amber);color:var(--signal-amber);border-radius:2px;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;padding:5px 12px;cursor:pointer}
+.extcard button.primary{background:rgba(255,178,36,.12)}
+.extcard .exopts{display:flex;flex-direction:column;gap:4px}
+.extcard .exopt{text-align:left;border:1px solid var(--border);color:var(--text-secondary);border-radius:2px;padding:5px 10px;font-family:var(--font-mono);font-size:11.5px;cursor:pointer}
+.extcard .exopt:hover{border-color:var(--signal-amber);color:var(--signal-amber)}
+/* 输入区 */
+#chatinput{flex:0 0 auto;display:flex;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-panel)}
+#chatinput input{flex:1;background:var(--bg-inset);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;padding:8px 12px;outline:none}
+#chatinput input:focus{border-color:var(--signal-green);box-shadow:0 0 0 1px rgba(45,224,160,.3)}
+#chatinput button{background:transparent;border:1px solid var(--signal-green);color:var(--signal-green);border-radius:2px;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;padding:8px 14px;cursor:pointer;transition:all .2s}
+#chatinput button:hover{background:rgba(45,224,160,.1);box-shadow:var(--glow-green)}
+#chatinput .qcount{font-family:var(--font-mono);font-size:11px;color:var(--signal-amber);display:none}
+#chatinput .qcount.on{display:inline}
+#chatinput .hint{font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);white-space:nowrap}
+/* ============ 右栏 ============ */
+#tlcol{flex:0 0 25%;min-width:320px;display:flex;flex-direction:column}
+#tlhead{flex:0 0 auto;padding:6px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);font-family:var(--font-mono);font-size:10.5px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;display:flex;justify-content:space-between}
+#tlfeed{flex:1;overflow-y:auto;padding:4px 0}
+.tlrow{display:flex;gap:8px;align-items:baseline;padding:2px 12px;font-family:var(--font-mono);font-size:12px;line-height:1.6;cursor:pointer;border-left:2px solid transparent;transition:background .15s}
+.tlrow:hover{background:var(--bg-elevated)}
+.tlrow.sel{background:var(--bg-elevated);border-left-color:var(--signal-green)}
+.tlrow .num{color:var(--text-tertiary);font-size:10.5px;flex:0 0 34px;text-align:right;user-select:none}
+.tlrow .ts{color:var(--text-tertiary);font-size:10.5px;flex:0 0 58px}
+.tlrow .tag{flex:0 0 auto;font-size:9.5px;font-weight:500;letter-spacing:.08em;padding:0 4px;border-radius:2px;border:1px solid}
+.tlrow .sum{color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlrow.agg{border-left-color:var(--border);color:var(--text-tertiary)}
+.tlrow[data-kl="llm"] .tag{color:var(--signal-green);border-color:rgba(45,224,160,.4)}
+.tlrow[data-kl="think"] .tag{color:var(--signal-cyan);border-color:rgba(79,209,255,.4)}
+.tlrow[data-kl="tool"] .tag{color:var(--signal-green);border-color:rgba(45,224,160,.4)}
+.tlrow[data-kl="gate"] .tag{color:var(--signal-amber);border-color:rgba(255,178,36,.4)}
+.tlrow[data-kl="err"] .tag{color:var(--signal-red);border-color:rgba(255,92,92,.5)}
+.tlrow[data-kl="turn"] .tag{color:var(--text-primary);border-color:var(--border-strong)}
+.tlrow[data-kl="meta"] .tag{color:var(--text-tertiary);border-color:var(--border)}
+#tlfeed .ruler{height:1px;background:var(--border);margin:6px 0}
+#tlfilters{flex:0 0 auto;display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px;border-top:1px solid var(--border);background:var(--bg-panel)}
+.chip{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;padding:3px 8px;border:1px solid var(--border);border-radius:999px;color:var(--text-tertiary);cursor:pointer;user-select:none}
+.chip.on{color:var(--signal-green);border-color:var(--signal-green);background:rgba(45,224,160,.07)}
+/* ============ 空态 ============ */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;letter-spacing:.1em}
+.empty .el{width:160px;height:2px;background:var(--border);position:relative;overflow:hidden}
+.empty .el::after{content:"";position:absolute;top:0;left:-40%;width:40%;height:100%;background:var(--signal-green);animation:scanline 2.2s linear infinite}
+/* demo 控制 */
+#democontrols{display:flex;gap:6px;align-items:center}
+.btn{background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:2px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;padding:4px 10px;cursor:pointer;transition:all .2s}
+.btn:hover{border-color:var(--signal-green);color:var(--signal-green)}
+.btn.primary{border-color:var(--signal-green);color:var(--signal-green)}
+.btn.primary:hover{background:rgba(45,224,160,.1);box-shadow:var(--glow-green)}
+.btn.run{animation:breath 1.6s infinite}
+.btn.warn{border-color:var(--signal-amber);color:var(--signal-amber)}
+/* ============ 动画 keyframes ============ */
+@keyframes breath{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes scan{0%{background-position:0 0}100%{background-position:0 24px}}
+@keyframes scanline{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+@keyframes edgeflow{to{stroke-dashoffset:-32}}
+@keyframes errflash{0%,100%{opacity:1}50%{opacity:.15}}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important;transition:none!important}
+  .arch [data-node].hold{fill:rgba(45,224,160,.1)}
+}
+.arch .brain{fill:none;stroke:#2DE0A0;stroke-width:.55;stroke-linecap:round;stroke-linejoin:round}
+.arch .purpose{font-size:13px;font-weight:600}
+</style>
+</head>
+<body class="st-idle">
+
+<header id="topbar">
+  <div class="logo"><span class="sig-dot"></span>THE LOOP</div>
+  <span class="path" id="sessionpath" title="session 文件">--mode rpc · 等待握手…</span>
+  <div class="spacer"></div>
+  <span class="badge hot" id="modelbadge">—</span>
+  <div id="statuslight"><span class="dot"></span><span id="statustext">IDLE</span></div>
+  <div id="democontrols">
+    <button class="btn warn" id="btn-demo">▶ DEMO</button>
+    <button class="btn" data-st="idle">IDLE</button>
+    <button class="btn" data-st="busy">BUSY</button>
+    <button class="btn" data-st="wait">WAIT</button>
+    <button class="btn" data-st="err">ERR</button>
+  </div>
+  <div id="progressline"></div>
+</header>
+
+<main id="main">
+  <section class="col" id="archcol">
+    <div class="colhead"><span class="tick"></span>Architecture · pi 调用流程</div>
+    <div id="archstatus"></div>
+    <div id="archcanvas">
+      <div id="archwrap">
+        <svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="pi 调用流程白板">
+          <defs>
+            <marker id="arr" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M0 0 L12 6 L0 12 z" class="head"/>
+            </marker>
+            <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#1A2330" stroke-width="1"/></pattern>
+            <radialGradient id="llmGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#2DE0A0" stop-opacity=".22"/><stop offset="100%" stop-color="#2DE0A0" stop-opacity="0"/></radialGradient>
+            <linearGradient id="boxGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1B2636"/><stop offset="100%" stop-color="#121A24"/></linearGradient>
+            <linearGradient id="diaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1D2C3E"/><stop offset="100%" stop-color="#0E151D"/></linearGradient>
+            <linearGradient id="crtGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF" stop-opacity=".045"/><stop offset="55%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity=".02"/></linearGradient>
+          </defs>
+
+          <!-- ===== 第 1 层：入口（人话说明 + 编号） ===== -->
+          <g data-node="faces" class="node" tabindex="0">
+            <rect class="box" x="20" y="24" width="300" height="150"/>
+            <line class="hdr hdr-cyan" x1="20" y1="24" x2="320" y2="24"/>
+            <text class="tagid" x="284" y="40">U1</text>
+            <text class="grp" x="34" y="46">① 入口 · Entry</text>
+            <text class="purpose" x="34" y="72" style="fill:#2DE0A0">4 种方式启动 pi</text>
+            <text class="nt" x="34" y="96">TUI · print · json · rpc</text>
+            <text class="ns" x="34" y="120">面板走 rpc 这一路</text>
+            <g data-node="face-rpc" tabindex="0">
+              <text class="nt" x="34" y="144">rpc 通道 ◉ 实时接入</text>
+            </g>
+          </g>
+          <path class="flow" d="M320 99 L370 99" marker-end="url(#arr)"/>
+
+          <g data-node="session-core" class="node" tabindex="0">
+            <rect class="box" x="370" y="24" width="240" height="150"/>
+            <line class="hdr hdr-amber" x1="370" y1="24" x2="610" y2="24"/>
+            <text class="tagid" x="586" y="40">U2</text>
+            <text class="grp" x="384" y="46">② 会话核心 · Session</text>
+            <text class="purpose" x="384" y="72" style="fill:#FFB224">事件总线 · 35 类</text>
+            <text class="nt" x="384" y="96">subscribe() 订阅</text>
+            <text class="ns" x="384" y="120">hooks · skills · 扩展</text>
+          </g>
+          <path class="flow" d="M610 99 L660 99" marker-end="url(#arr)"/>
+
+          <g data-node="context" class="node" tabindex="0">
+            <rect class="box" x="660" y="24" width="220" height="150"/>
+            <line class="hdr hdr-green" x1="660" y1="24" x2="880" y2="24"/>
+            <text class="tagid" x="856" y="40">U3</text>
+            <text class="grp" x="674" y="46">③ 上下文 · Context</text>
+            <text class="purpose" x="674" y="72" style="fill:#2DE0A0">喂给模型的全部信息</text>
+            <text class="nt" x="674" y="96">system + AGENTS.md</text>
+            <text class="ns" x="674" y="120">+ history + 你的 prompt</text>
+          </g>
+          <path class="flow" d="M700 174 L700 200 L580 200" marker-end="url(#arr)"/>
+
+          <!-- ===== 第 2 层：THE LOOP（CRT 显像管 + 网格 + 辉光） ===== -->
+          <g>
+            <rect class="loopbox" data-node="loop" x="20" y="200" width="560" height="560"/>
+            <rect class="gridly" x="22" y="202" width="556" height="556" fill="url(#grid)" opacity=".45"/>
+            <rect class="gridly" x="22" y="202" width="556" height="556" fill="url(#crtGrad)"/>
+            <line class="hdr hdr-green" x1="20" y1="200" x2="580" y2="200"/>
+            <text class="tagid" x="540" y="216">CH1</text>
+            <text class="grp" x="34" y="222">THE LOOP · 主循环</text>
+
+            <g data-node="llm" class="node" tabindex="0">
+              <rect class="box" x="272" y="246" width="196" height="168" rx="10"/>
+              <circle class="gridly" cx="370" cy="300" r="80" fill="url(#llmGlow)"/>
+              <g class="brain" transform="translate(320,250) scale(4.2)">
+                <path d="M12 5a3 3 0 1 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                <path d="M12 5a3 3 0 1 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4 4.5 4.5 0 0 1 3 4 4.5 4.5 0 0 1 3-4"/>
+                <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/>
+                <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/>
+                <path d="M3.477 10.896a4 4 0 0 1 .585-.396"/>
+                <path d="M19.938 10.5a4 4 0 0 1 .585.396"/>
+                <path d="M6.003 14.5a3 3 0 0 0 .401 1.375"/>
+                <path d="M17.599 14.5a3 3 0 0 1-.399 1.375"/>
+              </g>
+              <text class="tagid" x="442" y="264">IC1</text>
+              <circle class="led on" cx="456" cy="272" r="3"/>
+              <text class="nt" x="370" y="352" text-anchor="middle">LLM</text>
+              <text class="ns" id="llm-sub" x="370" y="372" text-anchor="middle">模型推理（LLM）</text>
+            </g>
+
+            <g data-node="q-tools" class="node" tabindex="0">
+              <polygon class="diamond" points="370,432 420,480 370,528 320,480"/>
+              <text class="tagid" x="428" y="470">G1</text>
+              <text class="nt" x="370" y="485" text-anchor="middle">tools?</text>
+            </g>
+
+            <g data-node="q-allowed" class="node" tabindex="0">
+              <polygon class="diamond" points="370,572 420,620 370,668 320,620"/>
+              <text class="tagid" x="428" y="610">G2</text>
+              <text class="nt" x="370" y="625" text-anchor="middle">allowed?</text>
+            </g>
+
+            <g data-node="tools" class="node" tabindex="0">
+              <rect class="box" x="225" y="696" width="290" height="52"/>
+              <text class="tagid" x="482" y="714">U4</text>
+              <circle class="led" cx="490" cy="716" r="2.5"/>
+              <circle class="led" cx="498" cy="716" r="2.5"/>
+              <circle class="led" cx="506" cy="716" r="2.5"/>
+              <text class="nt" x="239" y="716">read · write · edit · bash</text>
+              <text class="ns" id="tools-sub" x="239" y="734">grep · find · ls · 扩展工具</text>
+            </g>
+
+            <path class="flow" d="M370 385 L370 430" marker-end="url(#arr)"/>
+            <path class="flow" d="M370 528 L370 570" marker-end="url(#arr)"/>
+            <path class="flow" d="M370 668 L370 694" marker-end="url(#arr)" data-edge="e-allowed-tools"/>
+            <text class="flowlbl" x="380" y="686">ext hook tool_call · allow</text>
+            <path class="flow" d="M225 722 C130 722 130 330 265 330" marker-end="url(#arr)" data-edge="e-results-loop"/>
+            <text class="flowlbl" x="92" y="690">results → loop</text>
+            <path class="flow dash" d="M320 620 C245 600 230 520 320 482" marker-end="url(#arr)" data-edge="e-blocked"/>
+            <text class="flowlbl" x="160" y="545">block:true → tool result</text>
+            <path class="flow" d="M420 480 C600 480 600 360 658 360" marker-end="url(#arr)" data-edge="e-loop-reply"/>
+            <text class="flowlbl" x="486" y="438">no tool call → reply</text>
+          </g>
+
+          <!-- ===== 第 3 层：REPLY / SESSION / PIPE（右栏加宽到 240） ===== -->
+          <g data-node="reply" class="node" tabindex="0">
+            <rect class="box" x="640" y="300" width="240" height="130"/>
+            <line class="hdr hdr-cyan" x1="640" y1="300" x2="880" y2="300"/>
+            <text class="tagid" x="836" y="316">OUT1</text>
+            <text class="grp" x="654" y="322">回复 · Reply</text>
+            <text class="purpose" x="654" y="348" style="fill:#2DE0A0">结果回到你</text>
+            <text class="nt" x="654" y="374">TUI / json / rpc 输出</text>
+            <text class="ns" x="654" y="402">唤醒点：agent_settled</text>
+            <circle class="led on" cx="862" cy="318" r="3.5"/>
+          </g>
+
+          <g data-node="session" class="node" tabindex="0">
+            <rect class="box" x="640" y="450" width="240" height="180"/>
+            <line class="hdr hdr-green" x1="640" y1="450" x2="880" y2="450"/>
+            <text class="tagid" x="836" y="466">LOG1</text>
+            <text class="grp" x="654" y="472">会话存档 · JSONL</text>
+            <text class="purpose" x="654" y="498" style="fill:#FFB224">每会话一个日志文件</text>
+            <text class="nt" x="654" y="524">{id, parentId} · 可 fork</text>
+            <text class="ns" x="654" y="548">~/.pi/agent/sessions/</text>
+            <text class="ns" id="session-count" x="654" y="576">entries: 0</text>
+          </g>
+          <path class="flow dash" d="M580 566 L640 566" marker-end="url(#arr)" data-edge="e-save"/>
+          <text class="flowlbl" x="448" y="558">message_end → append</text>
+
+          <g>
+            <rect class="box" x="640" y="650" width="240" height="120"/>
+            <line class="hdr hdr-amber" x1="640" y1="650" x2="880" y2="650"/>
+            <text class="tagid" x="836" y="666">CH2</text>
+            <text class="grp" x="654" y="672">管道 · Pipe</text>
+            <text class="purpose" x="654" y="698" style="fill:#FFB224">事件出 / 命令入</text>
+            <text class="ns" x="654" y="724">EVENTS OUT · CMDS IN</text>
+            <text class="ns" x="654" y="748">SESSION · 白名单</text>
+            <circle class="led on" cx="862" cy="668" r="3.5"/>
+          </g>
+
+          <!-- ===== 第 4 层：事件流（简化为示例 chip） ===== -->
+          <g>
+            <rect class="box" x="20" y="780" width="860" height="150"/>
+            <line class="hdr hdr-gray" x1="20" y1="780" x2="880" y2="780"/>
+            <text class="tagid" x="836" y="796">PRT1</text>
+            <text class="grp" x="34" y="802">事件流 · Signal — 35 种事件</text>
+            <text class="ns" x="34" y="826">pi 实时吐出的全部事件（右侧时间线同款）</text>
+            <g class="chip" transform="translate(34,840)"><rect width="120" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">agent_start</text></g>
+            <g class="chip" transform="translate(164,840)"><rect width="120" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">message_end</text></g>
+            <g class="chip" transform="translate(294,840)"><rect width="140" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">tool_execution</text></g>
+            <g class="chip" transform="translate(444,840)"><rect width="130" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">agent_settled</text></g>
+            <text class="ns" x="586" y="858">… 共 35 种</text>
+          </g>
+
+          <!-- ===== 第 5 层：数据流（终端铭牌 · 弱化） ===== -->
+          <g>
+            <rect class="box" x="20" y="950" width="860" height="100"/>
+            <line class="hdr hdr-gray" x1="20" y1="950" x2="880" y2="950"/>
+            <text class="tagid" x="836" y="966">BUS1</text>
+            <text class="grp" x="34" y="972">数据流 · Bus</text>
+            <text class="purpose" x="34" y="994" style="fill:#2DE0A0">落盘路径 · 命令白名单</text>
+            <text class="pipe" x="34" y="1016">▶</text><text class="rail" x="50" y="1016">session → ~/.pi/agent/sessions/…jsonl</text>
+            <text class="pipe" x="34" y="1038">▶</text><text class="rail" x="50" y="1038">rpc · prompt/steer/follow_up/abort 白名单</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="col" id="chatcol">
+    <div class="colhead"><span class="tick"></span>Conversation</div>
+    <div id="chatfeed"><div class="empty"><span>AWAITING SIGNAL</span><span class="el"></span><span>发消息或运行 demo 开始</span></div></div>
+    <div id="chatinput">
+      <span class="hint" id="modehint">prompt</span>
+      <input type="text" id="msgbox" placeholder="输入消息… (Enter=prompt · 流式中 Enter=steer / Alt+Enter=follow_up)" aria-label="消息输入">
+      <span class="qcount" id="qcount">◈ 2 QUEUED</span>
+      <button id="btn-send">SEND</button>
+    </div>
+  </section>
+
+  <section class="col" id="tlcol">
+    <div class="colhead"><span class="tick"></span>Event Recorder</div>
+    <div id="tlhead"><span>live · delta 已聚合</span><span id="tlcount">0 EV</span></div>
+    <div id="tlfeed"></div>
+    <div id="tlfilters">
+      <span class="chip on" data-f="all">ALL</span>
+      <span class="chip on" data-f="llm">LLM</span>
+      <span class="chip on" data-f="tool">TOOL</span>
+      <span class="chip on" data-f="gate">GATE</span>
+      <span class="chip on" data-f="turn">TURN</span>
+      <span class="chip on" data-f="err">ERR</span>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ============ 常量 / 状态 ============ */
+const STAGE = {
+  turn_start:{nodes:["loop"],edges:[],label:"turn_start · 回合开始"},
+  user_in:{nodes:["face-rpc","context","faces"],edges:[],label:"message_start · user 进入"},
+  llm_start:{nodes:["llm"],edges:[],label:"message_start · LLM 流式",cls:"breath"},
+  llm_end:{nodes:["llm"],edges:[],label:"message_end · LLM 完成",cls:"breath"},
+  llm_stream:{nodes:["llm"],edges:[],label:"message_update · text_delta…",cls:"breath"},
+  thinking:{nodes:["llm"],edges:[],label:"message_update · thinking_delta…",cls:"cyan"},
+  toolcall:{nodes:["llm","q-tools"],edges:[],label:"message_update · toolcall…"},
+  tool_gate_pending:{nodes:["q-allowed"],edges:[],label:"tool_execution_start · 门禁判定",cls:""},
+  tool_start:{nodes:["q-allowed","tools"],edges:["e-allowed-tools"],label:"ext hook tool_call · 允许"},
+  tool_run:{nodes:["tools"],edges:[],label:"tool_execution_update · 运行中",cls:"hold"},
+  tool_end_ok:{nodes:["tools"],edges:["e-results-loop"],label:"tool_execution_end · OK"},
+  tool_end_err:{nodes:["q-allowed"],edges:["e-blocked"],label:"isError · 结果回流",cls:"errf"},
+  retry_wait:{nodes:["llm"],edges:[],label:"auto_retry_start · 退避…",cls:"amber"},
+  settled:{nodes:["reply"],edges:["e-loop-reply"],label:"agent_settled · 回复"},
+  session_write:{nodes:["session"],edges:["e-save"],label:"message_end · JSONL 落盘"},
+};
+let evQueue=[],playing=false,evCount=0,agg={llm:0,think:0},tlFilter=new Set(["all","llm","tool","gate","turn","err"]);
+let agentBusy=false, ws=null, demoMode=false, msgCount=0;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* ============ 动画引擎（双通道：阶段队列 + 流状态位） ============ */
+function hot(sel,cls,ms){document.querySelectorAll(sel).forEach(el=>{el.classList.add(cls);setTimeout(()=>el.classList.remove(cls),ms);});}
+function pulseEdge(eid){const el=document.querySelector(`[data-edge="${eid}"]`);if(!el)return;el.classList.add("pulse");setTimeout(()=>el.classList.remove("pulse"),650);}
+function setNode(name,cls,on=true){const el=document.querySelector(`[data-node="${name}"]`);if(!el)return;el.classList.toggle(cls,on);}
+function stageLabel(label){
+  const st=$("#archstatus");
+  st.innerHTML=`<span class="live-dot"></span>${label}`;
+}
+function animateStage(ev){
+  const spec=STAGE[ev.stage]; if(!spec)return;
+  stageLabel(spec.label);
+  const cls=spec.cls||"hot";
+  spec.nodes.forEach(n=>hot(`[data-node="${n}"]`,cls,1000));
+  spec.edges.forEach(e=>pulseEdge(e));
+  if(ev.stage==="tool_run"){setNode("tools","hold");updateToolsSub(ev.toolName||"");}
+  if(ev.stage==="tool_end_ok"||ev.stage==="tool_end_err"){setNode("tools","hold",false);}
+}
+function updateToolsSub(t){const s=$("#tools-sub");if(t)s.textContent="◉ "+t;}
+function playNext(){
+  if(!evQueue.length){playing=false;setTimeout(()=>{if(!evQueue.length){$("#archstatus").innerHTML="";}},400);return;}
+  playing=true;
+  animateStage(evQueue.shift());
+  setTimeout(playNext,620);
+}
+function pushEvent(ev){if(evQueue.length>3)evQueue.splice(0,evQueue.length-3);evQueue.push(ev);if(!playing)playNext();}
+function streamBit(node,cls,on){setNode(node,cls,on);}
+
+/* ============ 时间线 ============ */
+function tlRow(kind,tag,sum,aggKey){
+  if(aggKey){agg[aggKey]++;tlAggRefresh(aggKey);return;}
+  evCount++;
+  const feed=$("#tlfeed");
+  const row=document.createElement("div");
+  row.className="tlrow"; row.dataset.kl=kind;
+  row.innerHTML=`<span class="num">${String(evCount).padStart(3,"0")}</span><span class="ts">${new Date().toTimeString().slice(0,8)}</span><span class="tag">${tag}</span><span class="sum"></span>`;
+  row.querySelector(".sum").textContent=sum;
+  row.onclick=()=>{document.querySelectorAll(".tlrow.sel").forEach(r=>r.classList.remove("sel"));row.classList.add("sel");
+    const map={llm:"llm",think:"llm",tool:"tools",gate:"q-allowed",err:"q-allowed",turn:"loop",meta:"session"};
+    const t=map[kind];if(t)hot(`[data-node="${t}"]`,"hot",1500);};
+  feed.appendChild(row);feed.scrollTop=feed.scrollHeight;
+  if(feed.children.length%8===0){const r=document.createElement("div");r.className="ruler";feed.appendChild(r);}
+  $("#tlcount").textContent=evCount+" EV";
+}
+let aggRow=null;
+function tlAggRefresh(key){
+  const label=key==="llm"?"LLM·DELTA":"THINK·DELTA";
+  if(!aggRow||aggRow.dataset.k!==key){aggRow=document.createElement("div");aggRow.className="tlrow agg";aggRow.dataset.k=key;
+    aggRow.innerHTML=`<span class="num">~</span><span class="ts"></span><span class="tag">${label}</span><span class="sum"></span>`;
+    aggRow.querySelector(".ts").textContent=new Date().toTimeString().slice(0,8);
+    $("#tlfeed").appendChild(aggRow);}
+  aggRow.querySelector(".sum").textContent=(key==="llm"?"text_delta":"thinking_delta")+" ×"+agg[key];
+}
+
+/* ============ 对话渲染 ============ */
+function chatClearEmpty(){const e=$("#chatfeed .empty");if(e)e.remove();}
+function addUserMsg(text){chatClearEmpty();const d=document.createElement("div");d.className="msg user";d.textContent=text;$("#chatfeed").appendChild(d);$("#chatfeed").scrollTop=1e9;}
+let cur=null; // 当前 assistant 消息上下文
+function msgStartAssistant(initial){
+  chatClearEmpty();
+  const m=document.createElement("div");m.className="msg assistant";
+  const caret=document.createElement("span");caret.className="caret";
+  m.appendChild(caret);
+  cur={root:m,caret,blocks:[],toolPend:null,foot:null,stream:null,thinking:null,toolcalls:[]};
+  $("#chatfeed").appendChild(m);$("#chatfeed").scrollTop=1e9;
+}
+function msgTextDelta(delta){
+  if(!cur){msgStartAssistant();}
+  if(!cur.stream){cur.stream=document.createElement("span");cur.root.insertBefore(cur.stream,cur.caret);}
+  cur.stream.append(delta);
+  $("#chatfeed").scrollTop=1e9;
+}
+function msgThinkingStart(){if(!cur)msgStartAssistant();}
+function msgThinkingDelta(delta){
+  if(!cur)msgStartAssistant();
+  if(!cur.thinking){
+    const d=document.createElement("details");d.className="think";
+    d.innerHTML=`<summary>THINKING</summary><div class="body"></div>`;
+    cur.thinking=d;cur.root.insertBefore(d,cur.caret);
+  }
+  cur.thinking.querySelector(".body").textContent+=delta;
+  $("#chatfeed").scrollTop=1e9;
+}
+function msgToolcallStart(){if(!cur)msgStartAssistant();
+  if(!cur.toolPend){cur.toolPend=document.createElement("div");cur.toolPend.className="think";cur.toolPend.innerHTML="<summary>TOOLCALL · 等待工具名…</summary><div class=\"body\"></div>";cur.root.insertBefore(cur.toolPend,cur.caret);}
+}
+function msgToolcallDelta(p){const b=cur&&cur.toolPend&&cur.toolPend.querySelector(".body");if(b)b.textContent=p; }
+function msgAssistantEnd(message){
+  if(!cur)return;
+  // 权威消息重建：移除流式 span，按 content 块重建
+  const blocks=(message.content||[]).filter(c=>c.type==="text"||c.type==="thinking");
+  const text=blocks.filter(c=>c.type==="text").map(c=>c.text).join("");
+  const thinking=blocks.filter(c=>c.type==="thinking").map(c=>c.thinking).join("\n");
+  cur.stream?.remove();cur.stream=null;
+  if(cur.thinking){cur.thinking.querySelector(".body").textContent=thinking;cur.thinking.querySelector("summary").textContent=`THINKING · ${thinking.length} chars`;}
+  const tspan=document.createElement("span");tspan.textContent=text;
+  cur.root.insertBefore(tspan,cur.caret);
+  cur.caret.remove();cur.caret=null;
+  const foot=document.createElement("span");foot.className="foot";
+  foot.textContent=`stopReason=${message.stopReason??"?"} · ${message.usage?.output??0} tok out · cost $${(message.usage?.cost?.total??0).toFixed(6)}`;
+  cur.root.appendChild(foot);
+  $("#chatfeed").scrollTop=1e9;
+}
+function msgToolResultEnd(message){
+  // toolResult message_end → 挂到最近工具卡
+  const cards=[...document.querySelectorAll(".toolcard")];
+  const card=cards[cards.length-1];
+  if(card){
+    const body=card.querySelector(".tcbody");
+    const txt=(message.content||[]).map(c=>c.text||"").join("");
+    body.insertAdjacentHTML("beforeend","\n"+esc(txt).slice(0,2000));
+    if(message.isError)card.classList.add("err");
+  }
+}
+let toolSeq=0;
+function addToolCard(name,args,toolCallId){
+  chatClearEmpty();
+  const d=document.createElement("div");d.className="toolcard";d.dataset.tcid=toolCallId||"";
+  const argTxt=args?JSON.stringify(args):"";
+  d.innerHTML=`<div class="tchead"><span class="tid">#${String(++toolSeq).padStart(2,"0")}</span><span class="tname">${esc(name)}</span><span class="tstat"><span class="sd"></span><span class="stxt">PENDING</span></span></div><div class="tcbody">${esc(argTxt)}</div>`;
+  $("#chatfeed").appendChild(d);$("#chatfeed").scrollTop=1e9;
+  return {card:d,body:d.querySelector(".tcbody"),stat:d.querySelector(".tstat"),stxt:d.querySelector(".stxt")};
+}
+function updateSessionCount(n){const el=$("#session-count");if(el)el.textContent="entries: "+n;}
+
+/* ============ 全局状态 ============ */
+const STATELABEL={idle:"IDLE",busy:"BUSY",wait:"WAITING",err:"ERROR"};
+function setState(st){document.body.className="st-"+st;$("#statustext").textContent=STATELABEL[st];}
+
+/* ============ 真实事件归一化（pi → dashboard） ============ */
+function handlePiEvent(e){
+  if(e&&typeof e==="object"&&e.piType&&e.data)e=e.data; // 解包 hub 的 DashboardEvent {piType,data}
+  const t=e.type;
+  switch(t){
+    case "agent_start": agentBusy=true;setState("busy");tlRow("turn","AGENT·START","run begin");break;
+    case "turn_start": pushEvent({stage:"turn_start"});tlRow("turn","TURN·START","turn begin");break;
+    case "turn_end": pushEvent({stage:"turn_end"});tlRow("turn","TURN·END",e.message?.content?.length?"turn end":"");break;
+    case "message_start":{
+      const role=e.message?.role;
+      if(role==="user"){pushEvent({stage:"user_in"});tlRow("meta","USER·IN","user message");addUserMsg((e.message.content||[]).map(c=>c.text||"").join("")||"…");}
+      else if(role==="assistant"){
+        pushEvent({stage:"llm_start"});msgStartAssistant(e.message);
+        tlRow("llm","LLM·START",`${e.message?.provider??""} ${e.message?.model??""}`);
+        const p=e.message?.provider,m=e.message?.model;
+        if(p&&m)$("#modelbadge").textContent=`${p} · ${m}`;
+      }
+      else tlRow("meta","MSG·START",role??"");
+      break;}
+    case "message_update":{
+      const s=e.assistantMessageEvent;if(!s)break;
+      switch(s.type){
+        case "text_start": break;
+        case "text_delta": msgTextDelta(s.delta??"");streamBit("llm","breath",true);tlRow("llm","LLM·DELTA","", "llm");break;
+        case "text_end": break;
+        case "thinking_start": msgThinkingStart();streamBit("llm","cyan",true);break;
+        case "thinking_delta": msgThinkingDelta(s.delta??"");tlRow("think","THINK·DELTA","","think");break;
+        case "thinking_end": break;
+        case "toolcall_start": pushEvent({stage:"toolcall"});msgToolcallStart();tlRow("tool","TOOLCALL","assistant 声明工具调用");break;
+        case "toolcall_delta": msgToolcallDelta(s.partial??"");break;
+        case "toolcall_end": if(cur&&cur.toolPend)cur.toolPend.remove();break;
+        default: break;
+      }
+      break;}
+    case "message_end":{
+      const m=e.message;const role=m?.role;
+      if(role==="assistant"){pushEvent({stage:"llm_end"});msgAssistantEnd(m);tlRow("llm","LLM·END",`${m.stopReason??"?"} · ${m.usage?.output??0} tok · $${(m.usage?.cost?.total??0).toFixed(4)}`);msgCount++;updateSessionCount(msgCount);}
+      else if(role==="toolResult"){msgToolResultEnd(m);tlRow(m.isError?"err":"tool","TOOL·RESULT",`${m.toolName??""} ${m.isError?"ERR":"ok"}`,null);}
+      break;}
+    case "tool_execution_start":
+      pushEvent({stage:"tool_gate_pending"});
+      tlRow("gate","GATE·PENDING",`tool_call: ${e.toolName}`);
+      addToolCard(e.toolName,e.args,e.toolCallId);
+      pushEvent({stage:"tool_start"});
+      break;
+    case "tool_execution_update":{
+      pushEvent({stage:"tool_run",toolName:e.toolName});
+      const txt=(e.partialResult?.content||[]).map(c=>c.text||"").join("");
+      if(txt){const cards=[...document.querySelectorAll(".toolcard")];const card=cards[cards.length-1];if(card){const body=card.querySelector(".tcbody");body.insertAdjacentHTML("beforeend",esc(txt));card.querySelector(".tstat").classList.add("run");card.querySelector(".stxt").textContent="RUNNING";$("#chatfeed").scrollTop=1e9;}}
+      break;}
+    case "tool_execution_end":{
+      const cards=[...document.querySelectorAll(".toolcard")];
+      const card=cards.find(c=>c.dataset.tcid===e.toolCallId)||cards[cards.length-1];
+      if(card){
+        const st=card.querySelector(".tstat"),sx=card.querySelector(".stxt");
+        st.classList.remove("run");
+        const txt=(e.result?.content||[]).map(c=>c.text||"").join("")||"";
+        if(e.isError){st.classList.add("err");sx.textContent="ERR";card.classList.add("err");if(!/block/i.test(txt)){}}
+        else {st.classList.add("ok");sx.textContent="OK";}
+        const body=card.querySelector(".tcbody");
+        body.insertAdjacentHTML("beforeend","\n"+esc(txt));
+      }
+      pushEvent(e.isError?{stage:"tool_end_err"}:{stage:"tool_end_ok"});
+      tlRow(e.isError?"err":"tool",e.isError?"TOOL·ERR":"TOOL·END",`${e.toolName} ${e.isError?"ERR":"exit 0"}`,null);
+      break;}
+    case "agent_end":
+      tlRow("turn","AGENT·END",`willRetry=${e.willRetry}`);
+      if(e.willRetry){setState("wait");$("#archstatus").innerHTML=`<span class="warn">● will retry</span>`;}
+      break;
+    case "agent_settled": pushEvent({stage:"settled"});agentBusy=false;setState("idle");tlRow("turn","AGENT·SETTLED","idle · run complete");break;
+    case "auto_retry_start": pushEvent({stage:"retry_wait"});setState("wait");tlRow("gate","RETRY",`attempt ${e.attempt}/${e.maxAttempts} · +${e.delayMs}ms`);break;
+    case "auto_retry_end": if(!e.success)setState("err");else setState("busy");tlRow("gate","RETRY·END",e.success?"retry ok":"retry failed");break;
+    case "queue_update": $("#qcount").textContent=`◈ ${e.steering+e.followUp} QUEUED`;$("#qcount").classList.toggle("on",(e.steering+e.followUp)>0);break;
+    case "extension_ui_request": renderExtUi(e);tlRow("gate","EXT·UI",`${e.method}`);break;
+    case "compaction_start": tlRow("meta","COMPACT","compacting…");break;
+    case "compaction_end": tlRow("meta","COMPACT","done · "+(e.result?.reason??""));break;
+    case "bash_execution_update": tlRow("meta","USER·BASH","direct bash pipe");break;
+    case "entry_appended": tlRow("meta","ENTRY","extension appended entry");break;
+    case "session_info_changed": tlRow("meta","SESSION·INFO",e.info?.name??"");break;
+    case "thinking_level_changed": tlRow("meta","THINK·LEVEL",e.level);break;
+    case "model_select": tlRow("meta","MODEL",e.model?.id??"");break;
+    default:
+      if(t.startsWith("sys.")){tlRow("meta","SYS",e.detail??t);}
+      else tlRow("meta",t.toUpperCase(),e.detail??""); // 未知类型透传（版本升级兜底）
+  }
+}
+
+/* 单事件容错：任何事件处理异常都不中断重放/实时流 */
+function safeHandle(e){
+  try{handlePiEvent(e);}
+  catch(err){console.error("[dash] event failed:",e?.type??e?.piType,err);try{tlRow("meta","SKIP","事件处理异常: "+String(err.message??err).slice(0,80));}catch{/* noop */}}
+}
+
+/* ============ extension_ui_request 交互卡 ============ */
+function renderExtUi(e){
+  chatClearEmpty();
+  const d=document.createElement("div");d.className="extcard";
+  const m=e.method;
+  let body="";
+  if(m==="select"){body=`<span class="exopts">${(e.options||[]).map((o,i)=>`<button class="exopt" data-i="${i}">${esc(typeof o==="object"?o.label??o.name??JSON.stringify(o):o)}</button>`).join("")}</span>`;}
+  else if(m==="confirm"){body=`<div style="color:var(--text-secondary);font-family:var(--font-mono);font-size:11.5px">${esc(e.message??e.title??"确认?")}</div>`;}
+  else if(m==="editor"){body=`<textarea rows="8">${esc(e.initial??"")}</textarea>`;}
+  else if(m==="input"){body=`<input value="${esc(e.initial??"")}" placeholder="${esc(e.placeholder??"")}">`;}
+  d.innerHTML=`<div class="exhead">◈ EXTENSION UI · ${esc(m)}${e.title?` · ${esc(e.title)}`:""}</div><div class="exbody">${body}<div class="exbtns"></div></div>`;
+  const btns=d.querySelector(".exbtns");
+  const respond=(payload)=>{wsSend({type:"extension_ui_response",id:e.id,...payload});d.remove();};
+  if(m==="select"){d.querySelectorAll(".exopt").forEach(b=>b.onclick=()=>{const o=e.options[+b.dataset.i];respond({value:typeof o==="object"?o.value??o.name??JSON.stringify(o):o});});}
+  else if(m==="confirm"){const ok=document.createElement("button");ok.className="primary";ok.textContent="CONFIRM";ok.onclick=()=>respond({confirmed:true});const no=document.createElement("button");no.textContent="CANCEL";no.onclick=()=>respond({cancelled:true});btns.append(ok,no);}
+  else if(m==="editor"){const ok=document.createElement("button");ok.className="primary";ok.textContent="SUBMIT";ok.onclick=()=>respond({value:d.querySelector("textarea").value});const no=document.createElement("button");no.textContent="CANCEL";no.onclick=()=>respond({cancelled:true});btns.append(ok,no);}
+  else if(m==="input"){const ok=document.createElement("button");ok.className="primary";ok.textContent="OK";ok.onclick=()=>respond({value:d.querySelector("input").value});const no=document.createElement("button");no.textContent="CANCEL";no.onclick=()=>respond({cancelled:true});btns.append(ok,no);}
+  else {const ok=document.createElement("button");ok.className="primary";ok.textContent="DISMISS";ok.onclick=()=>respond({cancelled:true});btns.append(ok);}
+  $("#chatfeed").appendChild(d);$("#chatfeed").scrollTop=1e9;
+}
+
+/* ============ WS 连接 ============ */
+const TOKEN=new URLSearchParams(location.search).get("t")||"";
+function wsUrl(){const p=location.port?`${location.protocol==="https:"?"wss":"ws"}://${location.hostname}:${location.port}/ws?token=${TOKEN}`:`ws://127.0.0.1:7777/ws?token=${TOKEN}`;return p;}
+function wsSend(obj){if(ws&&ws.readyState===1)ws.send(JSON.stringify(obj));}
+function connect(){
+  ws=new WebSocket(wsUrl());
+  ws.onopen=()=>{$("#modehint").textContent="live";stageLabel("LIVE · --mode rpc 已连接");};
+  ws.onmessage=(m)=>{const msg=JSON.parse(m.data);
+    if(msg.type==="event"){safeHandle(msg.ev);}
+    else if(msg.type==="replay"){for(const ev of msg.events)safeHandle(ev);}
+    else if(msg.type==="denied"){stageLabel("DENIED · 命令被拒");}
+  };
+  ws.onclose=()=>{stageLabel("LINK DOWN · 重连中…");setTimeout(connect,1500);};
+}
+connect();
+fetch(`/api/state?t=${TOKEN}`).then(r=>r.json()).then(s=>{
+  if(s.state?.sessionFile)$("#sessionpath").textContent=s.state.sessionFile;
+  if(s.state?.model?.id)$("#modelbadge").textContent=`${s.state.model.provider} · ${s.state.model.id}`;
+}).catch(()=>{});
+
+/* ============ 输入：prompt / steer / follow_up ============ */
+function sendInput(v,behavior){
+  if(demoMode){addUserMsg(v);return;}
+  if(agentBusy&&!behavior){behavior="steer";}
+  wsSend({type:behavior==="followUp"?"follow_up":behavior==="steer"?"steer":"prompt",message:v});
+  $("#modehint").textContent=behavior==="followUp"?"follow_up":behavior==="steer"?"steer":"prompt";
+}
+$("#btn-send").onclick=()=>{const v=$("#msgbox").value.trim();if(!v)return;$("#msgbox").value="";
+  const e=window.event;
+  sendInput(v,(e&&(e.altKey||e.ctrlKey))?"followUp":null);};
+$("#msgbox").addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return;
+  e.preventDefault();
+  const v=$("#msgbox").value.trim();if(!v)return;$("#msgbox").value="";
+  sendInput(v,e.altKey||e.ctrlKey?"followUp":null);
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){wsSend({type:"abort"});stageLabel("ABORT 已发送");}});
+
+/* ============ DEMO（离线演示，与真实事件同管线） ============ */
+$("#btn-demo").onclick=async()=>{
+  if(demoMode){return;}
+  demoMode=true;
+  agentBusy=true;setState("busy");
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  pushEvent({stage:"turn_start"});tlRow("turn","TURN·START","turn 1 begin (demo)");
+  addUserMsg("在 demo-repo 里修复失败的测试：tests/app_test.py::test_login");
+  await sleep(400);
+  pushEvent({stage:"user_in"});tlRow("meta","USER·IN","demo");
+  await sleep(500);
+  pushEvent({stage:"llm_start"});msgStartAssistant({});tlRow("llm","LLM·START","deepseek-v4-flash · demo");
+  const th="先看测试内容定位失败原因：test_login 断言 302 跳转，但实现返回 200。";
+  msgThinkingStart();
+  for(let i=0;i<th.length;i+=3){msgThinkingDelta(th.slice(i,i+3));await sleep(12);}
+  tlRow("think","THINK·DELTA","","think");
+  const r1="我来定位这个问题。先看测试文件和登录路由。";
+  for(let i=0;i<r1.length;i+=2){msgTextDelta(r1.slice(i,i+2));await sleep(20);}
+  tlRow("llm","LLM·DELTA","","llm");
+  await sleep(300);
+  pushEvent({stage:"tool_gate_pending"});tlRow("gate","GATE·PENDING","tool_call: bash (demo)");
+  await sleep(400);
+  const b=addToolCard("bash",{command:"cat tests/app_test.py"},"demo-1");
+  pushEvent({stage:"tool_start"});
+  b.stat.classList.add("run");b.stxt.textContent="RUNNING";
+  pushEvent({stage:"tool_run",toolName:"bash"});
+  for(const ln of ["$ cat tests/app_test.py","def test_login(client):","    assert r.status_code == 302"]){b.body.insertAdjacentHTML("beforeend","\n"+esc(ln));await sleep(120);}
+  pushEvent({stage:"tool_end_ok"});b.stat.classList.remove("run");b.stat.classList.add("ok");b.stxt.textContent="OK";
+  tlRow("tool","TOOL·END","bash · exit 0 · demo");
+  await sleep(300);
+  pushEvent({stage:"tool_gate_pending"});tlRow("gate","GATE·PENDING","tool_call: write (demo)");
+  const w=addToolCard("write",{path:"app.py"},"demo-2");
+  pushEvent({stage:"tool_start"});
+  await sleep(300);
+  pushEvent({stage:"tool_end_err"});w.stat.classList.add("err");w.stxt.textContent="BLOCKED";w.card.classList.add("err");
+  w.body.insertAdjacentHTML("beforeend","\n[blocked] 扩展 protected-paths: 路径受保护");
+  tlRow("err","ERR·BLOCKED","write blocked → tool result · demo");
+  await sleep(400);
+  pushEvent({stage:"turn_end"});tlRow("turn","TURN·END","demo");
+  await sleep(400);
+  pushEvent({stage:"retry_wait"});setState("wait");tlRow("gate","RETRY","provider rate-limit · demo");
+  await sleep(900);
+  setState("busy");
+  const r2="修复完成：login 返回 302。";
+  msgStartAssistant({});
+  for(let i=0;i<r2.length;i+=2){msgTextDelta(r2.slice(i,i+2));await sleep(20);}
+  msgAssistantEnd({stopReason:"stop",usage:{output:42,cost:{total:0.0002}}});
+  tlRow("llm","LLM·END","stop · 42 tok · demo");
+  await sleep(300);
+  pushEvent({stage:"session_write"});tlRow("meta","SESSION","JSONL +1 · demo");
+  updateSessionCount(6);
+  await sleep(300);
+  pushEvent({stage:"settled"});tlRow("turn","AGENT·SETTLED","demo done");
+  setState("idle");
+  agentBusy=false;demoMode=false;
+};
+document.querySelectorAll("[data-st]").forEach(b=>b.addEventListener("click",()=>setState(b.dataset.st)));
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{c.classList.toggle("on");
+  tlFilter=new Set([...document.querySelectorAll(".chip.on")].map(x=>x.dataset.f));}));
+</script>
+</body>
+</html>
