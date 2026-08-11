@@ -9,6 +9,10 @@
 
 > 这是一个个人开发者工具。它完全运行在 `localhost` 上，**不应**被部署或暴露到网络中。
 
+<p align="center"><img src="docs/ui-screenshot.png" alt="pi-dashboard 界面预览 —— 架构 / 对话 / 事件记录器（三栏均有数据）" width="960"></p>
+
+<p align="center"><em>三栏实时监控 · 架构（左）· 对话（中）· 事件记录器（右）</em></p>
+
 ## 功能特性
 
 - 来自 pi rpc 事件流的实时时间线 + 对话流

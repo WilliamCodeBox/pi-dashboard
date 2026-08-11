@@ -11,6 +11,10 @@ calls, and an event timeline — in a browser, fed by a local WebSocket bridge t
 > This is a personal developer tool. It runs entirely on `localhost` and is **not** meant to be
 > deployed or exposed to a network.
 
+<p align="center"><img src="docs/ui-screenshot.png" alt="pi-dashboard UI preview — Architecture / Conversation / Event Recorder (three columns, populated)" width="960"></p>
+
+<p align="center"><em>Three-column live monitor · Architecture (left) · Conversation (center) · Event Recorder (right)</em></p>
+
 ## Features
 
 - Live event timeline + chat feed from pi's rpc event stream
