@@ -9,9 +9,13 @@
 
 > 这是一个个人开发者工具。它完全运行在 `localhost` 上，**不应**被部署或暴露到网络中。
 
-<p align="center"><img src="docs/ui-screenshot.png" alt="pi-dashboard 界面预览 —— 架构 / 对话 / 事件记录器（三栏均有数据）" width="960"></p>
+<p align="center"><img src="docs/ui-zh.png" alt="pi-dashboard 界面预览 —— 架构 / 对话 / 事件记录器（三栏均有数据，中文界面）" width="960"></p>
 
 <p align="center"><em>三栏实时监控 · 架构（左）· 对话（中）· 事件记录器（右）</em></p>
+
+<p align="center"><img src="docs/ui-en.png" alt="英文界面（同一视图，通过右上角按钮切换）" width="960"></p>
+
+<p align="center"><em>通过右上角按钮（<code>EN</code> / <code>中文</code>）一键切换中英文界面 · 偏好保存在 <code>localStorage</code></em></p>
 
 ## 功能特性
 
@@ -19,6 +23,7 @@
 - 左侧架构白板，展示 pi 的调用链路：
   `入口 → 会话 → 上下文 → 主循环（LLM / 工具？ / 允许？）→ 回复 / JSONL / 通道`
 - 浏览器通过命令白名单反向控制（绝不转发 shell）
+- **中/英文界面一键切换** —— 右上角按钮可随时切换整个 UI；偏好保存在 `localStorage`
 - **无构建步骤** —— 借助 Node 的类型剥离直接运行 TypeScript 源码
 
 ## 环境要求

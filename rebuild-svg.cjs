@@ -73,7 +73,7 @@ const defsAdd = `
             <linearGradient id="crtGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFFFF" stop-opacity=".045"/><stop offset="55%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity=".02"/></linearGradient>`;
 if (!html.includes('id="grid"')) html = html.replace("</defs>", defsAdd + "\n          </defs>");
 
-// ---------- 3. SVG 主体替换 ----------
+// ---------- 3. SVG 主体替换（文字带 data-i18n 钩子，由 index.html 的 setLang 切换中/英） ----------
 const svgStart = html.indexOf('<svg class="arch"');
 const svgEnd = html.indexOf("</svg>") + "</svg>".length;
 const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="pi 调用流程白板">
@@ -88,12 +88,12 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="20" y="24" width="300" height="150"/>
             <line class="hdr hdr-cyan" x1="20" y1="24" x2="320" y2="24"/>
             <text class="tagid" x="284" y="40">U1</text>
-            <text class="grp" x="34" y="46">① 入口 · Entry</text>
-            <text class="purpose" x="34" y="72" style="fill:#2DE0A0">4 种方式启动 pi</text>
+            <text class="grp" x="34" y="46" data-i18n="svg.grpEntry">① 入口 · Entry</text>
+            <text class="purpose" x="34" y="72" style="fill:#2DE0A0" data-i18n="svg.pEntry">4 种方式启动 pi</text>
             <text class="nt" x="34" y="96">TUI · print · json · rpc</text>
-            <text class="ns" x="34" y="120">面板走 rpc 这一路</text>
+            <text class="ns" x="34" y="120" data-i18n="svg.nFacesRpc">面板走 rpc 这一路</text>
             <g data-node="face-rpc" tabindex="0">
-              <text class="nt" x="34" y="144">rpc 通道 ◉ 实时接入</text>
+              <text class="nt" x="34" y="144" data-i18n="svg.nRpcCh">rpc 通道 ◉ 实时接入</text>
             </g>
           </g>
           <path class="flow" d="M320 99 L370 99" marker-end="url(#arr)"/>
@@ -102,10 +102,10 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="370" y="24" width="240" height="150"/>
             <line class="hdr hdr-amber" x1="370" y1="24" x2="610" y2="24"/>
             <text class="tagid" x="586" y="40">U2</text>
-            <text class="grp" x="384" y="46">② 会话核心 · Session</text>
-            <text class="purpose" x="384" y="72" style="fill:#FFB224">事件总线 · 35 类</text>
-            <text class="nt" x="384" y="96">subscribe() 订阅</text>
-            <text class="ns" x="384" y="120">hooks · skills · 扩展</text>
+            <text class="grp" x="384" y="46" data-i18n="svg.grpSession">② 会话核心 · Session</text>
+            <text class="purpose" x="384" y="72" style="fill:#FFB224" data-i18n="svg.pSession">事件总线 · 35 类</text>
+            <text class="nt" x="384" y="96" data-i18n="svg.nSessionSub">subscribe() 订阅</text>
+            <text class="ns" x="384" y="120" data-i18n="svg.nSessionSkill">hooks · skills · 扩展</text>
           </g>
           <path class="flow" d="M610 99 L660 99" marker-end="url(#arr)"/>
 
@@ -113,10 +113,10 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="660" y="24" width="220" height="150"/>
             <line class="hdr hdr-green" x1="660" y1="24" x2="880" y2="24"/>
             <text class="tagid" x="856" y="40">U3</text>
-            <text class="grp" x="674" y="46">③ 上下文 · Context</text>
-            <text class="purpose" x="674" y="72" style="fill:#2DE0A0">喂给模型的全部信息</text>
+            <text class="grp" x="674" y="46" data-i18n="svg.grpContext">③ 上下文 · Context</text>
+            <text class="purpose" x="674" y="72" style="fill:#2DE0A0" data-i18n="svg.pContext">喂给模型的全部信息</text>
             <text class="nt" x="674" y="96">system + AGENTS.md</text>
-            <text class="ns" x="674" y="120">+ history + 你的 prompt</text>
+            <text class="ns" x="674" y="120" data-i18n="svg.nContextHist">+ history + 你的 prompt</text>
           </g>
           <path class="flow" d="M700 174 L700 200 L580 200" marker-end="url(#arr)"/>
 
@@ -127,7 +127,7 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="gridly" x="22" y="202" width="556" height="556" fill="url(#crtGrad)"/>
             <line class="hdr hdr-green" x1="20" y1="200" x2="580" y2="200"/>
             <text class="tagid" x="540" y="216">CH1</text>
-            <text class="grp" x="34" y="222">THE LOOP · 主循环</text>
+            <text class="grp" x="34" y="222" data-i18n="svg.grpLoop">THE LOOP · 主循环</text>
 
             <g data-node="llm" class="node" tabindex="0">
               <rect class="box" x="272" y="246" width="196" height="168" rx="10"/>
@@ -146,7 +146,7 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
               <text class="tagid" x="442" y="264">IC1</text>
               <circle class="led on" cx="456" cy="272" r="3"/>
               <text class="nt" x="370" y="352" text-anchor="middle">LLM</text>
-              <text class="ns" id="llm-sub" x="370" y="372" text-anchor="middle">模型推理（LLM）</text>
+              <text class="ns" id="llm-sub" x="370" y="372" text-anchor="middle" data-i18n="svg.nLlm">模型推理（LLM）</text>
             </g>
 
             <g data-node="q-tools" class="node" tabindex="0">
@@ -188,10 +188,10 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="640" y="300" width="240" height="130"/>
             <line class="hdr hdr-cyan" x1="640" y1="300" x2="880" y2="300"/>
             <text class="tagid" x="836" y="316">OUT1</text>
-            <text class="grp" x="654" y="322">回复 · Reply</text>
-            <text class="purpose" x="654" y="348" style="fill:#2DE0A0">结果回到你</text>
-            <text class="nt" x="654" y="374">TUI / json / rpc 输出</text>
-            <text class="ns" x="654" y="402">唤醒点：agent_settled</text>
+            <text class="grp" x="654" y="322" data-i18n="svg.grpReply">回复 · Reply</text>
+            <text class="purpose" x="654" y="348" style="fill:#2DE0A0" data-i18n="svg.pReply">结果回到你</text>
+            <text class="nt" x="654" y="374" data-i18n="svg.nReplyOut">TUI / json / rpc 输出</text>
+            <text class="ns" x="654" y="402" data-i18n="svg.nReplyWake">唤醒点：agent_settled</text>
             <circle class="led on" cx="862" cy="318" r="3.5"/>
           </g>
 
@@ -199,9 +199,9 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="640" y="450" width="240" height="180"/>
             <line class="hdr hdr-green" x1="640" y1="450" x2="880" y2="450"/>
             <text class="tagid" x="836" y="466">LOG1</text>
-            <text class="grp" x="654" y="472">会话存档 · JSONL</text>
-            <text class="purpose" x="654" y="498" style="fill:#FFB224">每会话一个日志文件</text>
-            <text class="nt" x="654" y="524">{id, parentId} · 可 fork</text>
+            <text class="grp" x="654" y="472" data-i18n="svg.grpJsonl">会话存档 · JSONL</text>
+            <text class="purpose" x="654" y="498" style="fill:#FFB224" data-i18n="svg.pJsonl">每会话一个日志文件</text>
+            <text class="nt" x="654" y="524" data-i18n="svg.nJsonlFork">{id, parentId} · 可 fork</text>
             <text class="ns" x="654" y="548">~/.pi/agent/sessions/</text>
             <text class="ns" id="session-count" x="654" y="576">entries: 0</text>
           </g>
@@ -212,10 +212,10 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="640" y="650" width="240" height="120"/>
             <line class="hdr hdr-amber" x1="640" y1="650" x2="880" y2="650"/>
             <text class="tagid" x="836" y="666">CH2</text>
-            <text class="grp" x="654" y="672">管道 · Pipe</text>
-            <text class="purpose" x="654" y="698" style="fill:#FFB224">事件出 / 命令入</text>
+            <text class="grp" x="654" y="672" data-i18n="svg.grpPipe">管道 · Pipe</text>
+            <text class="purpose" x="654" y="698" style="fill:#FFB224" data-i18n="svg.pPipe">事件出 / 命令入</text>
             <text class="ns" x="654" y="724">EVENTS OUT · CMDS IN</text>
-            <text class="ns" x="654" y="748">SESSION · 白名单</text>
+            <text class="ns" x="654" y="748" data-i18n="svg.nPipeWh">SESSION · 白名单</text>
             <circle class="led on" cx="862" cy="668" r="3.5"/>
           </g>
 
@@ -224,13 +224,13 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="20" y="780" width="860" height="150"/>
             <line class="hdr hdr-gray" x1="20" y1="780" x2="880" y2="780"/>
             <text class="tagid" x="836" y="796">PRT1</text>
-            <text class="grp" x="34" y="802">事件流 · Signal — 35 种事件</text>
-            <text class="ns" x="34" y="826">pi 实时吐出的全部事件（右侧时间线同款）</text>
+            <text class="grp" x="34" y="802" data-i18n="svg.grpSignal">事件流 · Signal — 35 种事件</text>
+            <text class="ns" x="34" y="826" data-i18n="svg.nSignalDesc">pi 实时吐出的全部事件（右侧时间线同款）</text>
             <g class="chip" transform="translate(34,840)"><rect width="120" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">agent_start</text></g>
             <g class="chip" transform="translate(164,840)"><rect width="120" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">message_end</text></g>
             <g class="chip" transform="translate(294,840)"><rect width="140" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">tool_execution</text></g>
             <g class="chip" transform="translate(444,840)"><rect width="130" height="24" rx="3" class="chip"/><text class="chip-txt" x="8" y="16">agent_settled</text></g>
-            <text class="ns" x="586" y="858">… 共 35 种</text>
+            <text class="ns" x="586" y="858" data-i18n="svg.nSignalMore">… 共 35 种</text>
           </g>
 
           <!-- ===== 第 5 层：数据流（终端铭牌 · 弱化） ===== -->
@@ -238,10 +238,10 @@ const newSvg = `<svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="
             <rect class="box" x="20" y="950" width="860" height="100"/>
             <line class="hdr hdr-gray" x1="20" y1="950" x2="880" y2="950"/>
             <text class="tagid" x="836" y="966">BUS1</text>
-            <text class="grp" x="34" y="972">数据流 · Bus</text>
-            <text class="purpose" x="34" y="994" style="fill:#2DE0A0">落盘路径 · 命令白名单</text>
+            <text class="grp" x="34" y="972" data-i18n="svg.grpBus">数据流 · Bus</text>
+            <text class="purpose" x="34" y="994" style="fill:#2DE0A0" data-i18n="svg.pBus">落盘路径 · 命令白名单</text>
             <text class="pipe" x="34" y="1016">▶</text><text class="rail" x="50" y="1016">session → ~/.pi/agent/sessions/…jsonl</text>
-            <text class="pipe" x="34" y="1038">▶</text><text class="rail" x="50" y="1038">rpc · prompt/steer/follow_up/abort 白名单</text>
+            <text class="pipe" x="34" y="1038">▶</text><text class="rail" x="50" y="1038" data-i18n="svg.railRpc">rpc · prompt/steer/follow_up/abort 白名单</text>
           </g>
         </svg>`;
 

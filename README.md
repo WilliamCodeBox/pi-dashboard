@@ -15,12 +15,17 @@ calls, and an event timeline — in a browser, fed by a local WebSocket bridge t
 
 <p align="center"><em>Three-column live monitor · Architecture (left) · Conversation (center) · Event Recorder (right)</em></p>
 
+<p align="center"><img src="docs/ui-zh.png" alt="Chinese UI mode (same view, toggled)" width="960"></p>
+
+<p align="center"><em>Toggle the UI between Chinese and English via the top-right button (<code>中文</code> / <code>EN</code>) — preference saved to <code>localStorage</code>.</em></p>
+
 ## Features
 
 - Live event timeline + chat feed from pi's rpc event stream
 - Architectural whiteboard (left panel) showing the pi call-flow:
   `Entry → Session → Context → THE LOOP (LLM / tools? / allowed?) → Reply / JSONL / Pipe`
 - Reverse control from the browser via a command whitelist (never forwards a shell)
+- **Chinese / English UI toggle** — top-right button switches the entire UI; preference saved to `localStorage`
 - **No build step** — runs TypeScript source directly with Node's type stripping
 
 ## Requirements
