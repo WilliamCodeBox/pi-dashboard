@@ -26,6 +26,7 @@ calls, and an event timeline — in a browser, fed by a local WebSocket bridge t
   `Entry → Session → Context → THE LOOP (LLM / tools? / allowed?) → Reply / JSONL / Pipe`
 - Reverse control from the browser via a command whitelist (never forwards a shell)
 - **Chinese / English UI toggle** — top-right button switches the entire UI; preference saved to `localStorage`
+- **Project directory control** — `pi` runs *inside* a project directory; the top-bar `项目` control lets you choose which one. Pick via **Browse** (native Windows folder dialog), **Recent projects** (from your session history), or by pasting a path. Switching restarts `pi` in the new directory, and the History panel filters to that project (toggle *All projects* to see cross-project sessions).
 - **No build step** — runs TypeScript source directly with Node's type stripping
 
 ## Requirements
@@ -67,8 +68,8 @@ server.ts ◄──────────── browser (WebSocket)
 
 | File | Role |
 |------|------|
-| `server.ts` | HTTP + WebSocket server on `127.0.0.1:7777` (override with `PI_DASH_PORT`). Generates a random token at startup; validates token + `Origin` on every request. |
-| `bridge.ts` | Spawns `pi --mode rpc`, reads NDJSON events, writes JSONL commands. Resolves the pi CLI via `PI_CLI_PATH` → module resolution → `pi` on PATH (3-level fallback). Stops auto-restart if the CLI is missing. |
+| `server.ts` | HTTP + WebSocket server on `127.0.0.1:7777` (override with `PI_DASH_PORT`). Generates a random token at startup; validates token + `Origin` on every request. Resolves `pi`'s project directory (`--cwd=` > `~/.pi-dashboard/config.json` > `PI_DASH_PROJECT` > `process.cwd()`), exposes `set_project` / `pick_directory` WS commands, and attaches `projectCwd` to each history entry. |
+| `bridge.ts` | Spawns `pi --mode rpc`, reads NDJSON events, writes JSONL commands. Resolves the pi CLI via `PI_CLI_PATH` → module resolution → `pi` on PATH (3-level fallback). Stops auto-restart if the CLI is missing. Adds `restart(dir?)` to respawn `pi` in a new project directory without halting the bridge. |
 | `hub.ts` | In-process event bus (monotonic id + 2000-entry ring buffer). |
 | `public/index.html` | Static front-end (timeline + whiteboard). `rebuild-svg.cjs` regenerates its architecture SVG — run `node rebuild-svg.cjs` after editing that script. |
 | `headless-test.cjs` | Dev self-test that drives the front-end script with a real event stream (needs `events-live.jsonl`, not in this repo). |
@@ -79,6 +80,27 @@ server.ts ◄──────────── browser (WebSocket)
 |---------|---------|---------|
 | `PI_DASH_PORT` | Listen port | `7777` |
 | `PI_CLI_PATH` | Explicit path to pi's `cli.js` | Resolved via module / `pi` on PATH |
+| `PI_DASH_PROJECT` | Default project directory for `pi` (overridden by `--cwd=` and the UI selection persisted in `~/.pi-dashboard/config.json`) | `process.cwd()` |
+
+## Project directory
+
+`pi` is a **project-scoped** agent — it must run inside the directory of the codebase you are working on. The dashboard now lets you choose that directory explicitly instead of inheriting it from wherever the process was launched (which previously meant double-clicking `start.bat` pointed `pi` at the dashboard repo itself).
+
+**Choosing a project** — click the `项目` control in the top bar:
+
+- **Browse…** pops a native Windows folder picker (requires a desktop session; unavailable if run headless).
+- **Recent projects** lists directories taken from your existing `pi` session history — one click fills the box.
+- **Manual path** — paste any directory.
+
+Applying a new directory **restarts `pi`** in that directory; the current live session is interrupted (a confirm dialog guards this). The selection is persisted to `~/.pi-dashboard/config.json` (outside the repo) and reused on next launch.
+
+**Resolution order** when the dashboard starts:
+
+```
+--cwd=<dir>  >  ~/.pi-dashboard/config.json  >  PI_DASH_PROJECT  >  process.cwd()
+```
+
+**History filtering** — the History panel (right column) shows sessions for the *current* project by default. Switch to *All projects* to browse every session across directories; each entry is labelled with its project directory (parsed from the `cwd` field on the session's first line).
 
 ## Security & Privacy
 

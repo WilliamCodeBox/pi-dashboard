@@ -24,6 +24,7 @@
   `入口 → 会话 → 上下文 → 主循环（LLM / 工具？ / 允许？）→ 回复 / JSONL / 通道`
 - 浏览器通过命令白名单反向控制（绝不转发 shell）
 - **中/英文界面一键切换** —— 右上角按钮可随时切换整个 UI；偏好保存在 `localStorage`
+- **项目目录控制** —— `pi` 需要在某个项目目录内运行；顶栏的 `项目` 控件让你可以指定它运行在哪个目录。三种选择方式：**浏览…**（Windows 原生文件夹选择框）、**最近项目**（取自你的会话历史）、或直接粘贴路径。切换会重启 `pi` 到新目录，且历史面板自动过滤到该项目（可切到「全部项目」查看跨项目会话）。
 - **无构建步骤** —— 借助 Node 的类型剥离直接运行 TypeScript 源码
 
 ## 环境要求
@@ -64,8 +65,8 @@ server.ts ◄──────────── 浏览器（WebSocket）
 
 | 文件 | 作用 |
 |------|------|
-| `server.ts` | 监听 `127.0.0.1:7777` 的 HTTP + WebSocket 服务（可用 `PI_DASH_PORT` 覆盖）。启动时生成随机 token；对每个请求校验 token 与 `Origin`。 |
-| `bridge.ts` | 启动 `pi --mode rpc`，读取 NDJSON 事件、写入 JSONL 命令。解析 pi CLI 路径采用三级回退：`PI_CLI_PATH` → 模块解析 → PATH 中的 `pi`。CLI 缺失时停止自动重启。 |
+| `server.ts` | 监听 `127.0.0.1:7777` 的 HTTP + WebSocket 服务（可用 `PI_DASH_PORT` 覆盖）。启动时生成随机 token；对每个请求校验 token 与 `Origin`。解析 `pi` 的项目目录（`--cwd=` > `~/.pi-dashboard/config.json` > `PI_DASH_PROJECT` > `process.cwd()`），提供 `set_project` / `pick_directory` 两个 WebSocket 命令，并为每条历史记录附上 `projectCwd`。 |
+| `bridge.ts` | 启动 `pi --mode rpc`，读取 NDJSON 事件、写入 JSONL 命令。解析 pi CLI 路径采用三级回退：`PI_CLI_PATH` → 模块解析 → PATH 中的 `pi`。CLI 缺失时停止自动重启。新增 `restart(dir?)` 可在不关闭桥接的前提下于新项目目录重新启动 `pi`。 |
 | `hub.ts` | 进程内事件总线（单调 id + 2000 条环形缓冲）。 |
 | `public/index.html` | 静态前端（时间线 + 白板）。`rebuild-svg.cjs` 负责重新生成其中的架构 SVG —— 修改该脚本后运行 `node rebuild-svg.cjs`。 |
 | `headless-test.cjs` | 开发自测脚本，用真实事件流驱动前端（依赖仓库外的 `events-live.jsonl`）。 |
@@ -76,6 +77,27 @@ server.ts ◄──────────── 浏览器（WebSocket）
 |---------|---------|---------|
 | `PI_DASH_PORT` | 监听端口 | `7777` |
 | `PI_CLI_PATH` | pi 的 `cli.js` 显式路径 | 经模块解析 / PATH 中的 `pi` 推断 |
+| `PI_DASH_PROJECT` | `pi` 的默认项目目录（优先级低于 `--cwd=` 及持久化在 `~/.pi-dashboard/config.json` 的界面选择） | `process.cwd()` |
+
+## 项目目录
+
+`pi` 是一个**项目级**智能体——它必须在你正在开发的代码仓库目录内运行。面板现在允许你显式指定这个目录，而不是继承启动面板时的进程工作目录（之前双击 `start.bat` 会让 `pi` 把面板仓库自身当成项目来操作）。
+
+**选择项目** —— 点击顶栏的 `项目` 控件：
+
+- **浏览…** 弹出 Windows 原生文件夹选择框（需桌面会话；无界面/后台运行时不可用）。
+- **最近项目** 列出你已有 `pi` 会话历史中的目录——点一下即可填入。
+- **手动路径** —— 直接粘贴任意目录。
+
+应用新目录会**重启 `pi`** 到该目录；当前实时会话会中断（有确认框兜底）。所选目录会持久化到 `~/.pi-dashboard/config.json`（仓库之外），下次启动自动沿用。
+
+**启动时的解析优先级**：
+
+```
+--cwd=<dir>  >  ~/.pi-dashboard/config.json  >  PI_DASH_PROJECT  >  process.cwd()
+```
+
+**历史过滤** —— 历史面板（右栏）默认只显示*当前项目*的会话。切到「全部项目」可浏览所有目录下的会话；每条都标注所属项目目录（取自会话首行的 `cwd` 字段）。
 
 ## 安全与隐私
 
