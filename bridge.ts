@@ -64,6 +64,20 @@ export class Bridge {
     this.spawnChild();
   }
 
+  /** 切换工作目录并重启 pi 子进程（UI 切换项目用） */
+  restart(dir?: string) {
+    if (dir) this.opts.cwd = dir;
+    this.rejectAll();
+    if (this.child) {
+      this.child.removeAllListeners();
+      try { this.child.kill(); } catch { /* noop */ }
+      this.child = null;
+    }
+    this.closed = false;
+    this.restartDelay = 500;
+    this.spawnChild();
+  }
+
   private spawnChild() {
     this.state = "starting";
     this.opts.onStatus({ state: this.state, detail: "spawning pi --mode rpc" });

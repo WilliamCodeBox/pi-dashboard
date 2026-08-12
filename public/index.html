@@ -248,6 +248,42 @@ body.lang-en .arch .nt{font-size:13px}
 body.lang-en .arch .ns{font-size:11px}
 body.lang-en .arch .purpose{font-size:11px}
 body.lang-en .arch .rail{font-size:11px}
+/* 项目目录控件 */
+#projctl{cursor:pointer}
+#projctl:hover{color:var(--text-secondary)}
+#projpop{position:absolute;top:46px;left:16px;z-index:30;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;width:440px;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#projpop[hidden]{display:none}
+#projpop .pp-title{font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--text-secondary);text-transform:uppercase}
+#projpop input{background:var(--bg-inset);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:var(--font-mono);font-size:12px;padding:8px 10px;outline:none;width:100%}
+#projpop input:focus{border-color:var(--signal-green);box-shadow:0 0 0 1px rgba(45,224,160,.3)}
+#projpop .pp-btns{display:flex;justify-content:flex-end;gap:8px}
+#projpop .pp-browse{align-self:flex-start;font-size:11px;padding:6px 12px}
+#projpop .pp-sep{height:1px;background:var(--border);margin:2px 0}
+#projpop .pp-recent{display:flex;flex-direction:column;gap:2px;max-height:170px;overflow-y:auto}
+#projpop .pp-recent-title{font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+#projpop .pp-rec-item{font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);padding:6px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#projpop .pp-rec-item:hover{background:var(--bg-inset);color:var(--text-primary)}
+#projpop .pp-rec-item.on{background:var(--bg-inset);color:var(--signal-green)}
+#projpop .pp-rec-empty{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);padding:4px 0}
+/* 右栏 tab */
+.coltab{font-family:var(--font-display);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);cursor:pointer;padding:0 10px;border-bottom:2px solid transparent;margin-left:4px}
+.coltab.on{color:var(--text-primary);border-bottom-color:var(--signal-green)}
+#tlcol[data-tab="history"] #tlhead,
+#tlcol[data-tab="history"] #tlfeed,
+#tlcol[data-tab="history"] #tlfilters{display:none}
+#tlcol[data-tab="events"] #histhead,
+#tlcol[data-tab="events"] #histfeed,
+#tlcol[data-tab="events"] #histfilters{display:none}
+#histhead{flex:0 0 auto;padding:6px 16px;border-bottom:1px solid var(--border);background:var(--bg-panel);font-family:var(--font-mono);font-size:10.5px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;display:flex;justify-content:space-between}
+#histfeed{flex:1;overflow-y:auto;padding:4px 0}
+#histfilters{flex:0 0 auto;display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px;border-top:1px solid var(--border);background:var(--bg-panel)}
+/* 确认框 */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:60}
+.modal-mask[hidden]{display:none}
+.modal{background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:8px;padding:18px 20px;width:400px;max-width:90vw;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.modal-title{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:.06em;color:var(--text-primary);margin-bottom:10px}
+.modal-body{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;white-space:pre-wrap;word-break:break-all}
+.modal-btns{display:flex;justify-content:flex-end;gap:8px}
 </style>
 </head>
 <body class="st-idle">
@@ -255,6 +291,7 @@ body.lang-en .arch .rail{font-size:11px}
 <header id="topbar">
   <div class="logo"><span class="sig-dot"></span>THE LOOP</div>
   <span class="path" id="sessionpath" title="session 文件">--mode rpc · 等待握手…</span>
+  <span class="path" id="projctl" title="点击切换项目目录"><span data-i18n="ui.projLabel">项目：</span><span id="projval">—</span></span>
   <div class="spacer"></div>
   <span class="badge hot" id="modelbadge">—</span>
   <div id="statuslight"><span class="dot"></span><span id="statustext">IDLE</span></div>
@@ -269,12 +306,30 @@ body.lang-en .arch .rail{font-size:11px}
   <div id="progressline"></div>
 </header>
 
+<div id="projpop" hidden>
+  <div class="pp-title" data-i18n="ui.projTitle">项目目录</div>
+  <input type="text" id="projinput" placeholder="D:\repos\your-project">
+  <button class="btn pp-browse" id="proj-browse" data-i18n="ui.browse">浏览…</button>
+  <div class="pp-sep"></div>
+  <div class="pp-recent-title" data-i18n="ui.recent">最近项目</div>
+  <div class="pp-recent" id="projrecent"></div>
+  <div class="pp-btns"><button class="btn" id="proj-cancel" data-i18n="ui.cancel">取消</button><button class="btn primary" id="proj-apply" data-i18n="ui.apply">应用</button></div>
+</div>
+<div id="confirmbox" class="modal-mask" hidden>
+  <div class="modal">
+    <div class="modal-title" data-i18n="ui.confirmTitle">切换项目</div>
+    <div class="modal-body" id="confirmtext"></div>
+    <div class="modal-btns"><button class="btn" id="confirm-no" data-i18n="ui.cancel">取消</button><button class="btn primary" id="confirm-yes" data-i18n="ui.confirmYes">确认切换</button></div>
+  </div>
+</div>
+
 <main id="main">
   <section class="col" id="archcol">
     <div class="colhead"><span class="tick"></span><span data-i18n="ui.archCol">Architecture · pi 调用流程</span></div>
     <div id="archstatus"></div>
     <div id="archcanvas">
       <div id="archwrap">
+        <!-- ARCH SVG (BEGIN): generated by rebuild-svg.cjs — DO NOT hand-edit this block; edit the newSvg template in rebuild-svg.cjs and re-run `node rebuild-svg.cjs` instead -->
         <svg class="arch" viewBox="0 0 900 1050" role="img" aria-label="pi 调用流程白板">
           <defs>
             <marker id="arr" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
@@ -448,6 +503,7 @@ body.lang-en .arch .rail{font-size:11px}
             <text class="pipe" x="34" y="1038">▶</text><text class="rail" x="50" y="1038" data-i18n="svg.railRpc">rpc · prompt/steer/follow_up/abort 白名单</text>
           </g>
         </svg>
+        <!-- ARCH SVG (END): generated by rebuild-svg.cjs — see BEGIN marker above -->
       </div>
     </div>
   </section>
@@ -463,8 +519,8 @@ body.lang-en .arch .rail{font-size:11px}
     </div>
   </section>
 
-  <section class="col" id="tlcol">
-    <div class="colhead"><span class="tick"></span><span data-i18n="ui.tlCol">Event Recorder</span></div>
+  <section class="col" id="tlcol" data-tab="events">
+    <div class="colhead"><span class="tick"></span><span class="coltab on" data-tab="events" data-i18n="ui.tlCol">Event Recorder</span><span class="coltab" data-tab="history" data-i18n="ui.histCol">History</span></div>
     <div id="tlhead"><span data-i18n="ui.tlHead">live · delta 已聚合</span><span id="tlcount">0 EV</span></div>
     <div id="tlfeed"></div>
     <div id="tlfilters">
@@ -474,6 +530,12 @@ body.lang-en .arch .rail{font-size:11px}
       <span class="chip on" data-f="gate">GATE</span>
       <span class="chip on" data-f="turn">TURN</span>
       <span class="chip on" data-f="err">ERR</span>
+    </div>
+    <div id="histhead" hidden><span data-i18n="ui.histHead">会话历史 · 按项目归类</span><span id="histcount"></span></div>
+    <div id="histfeed" hidden></div>
+    <div id="histfilters" hidden>
+      <span class="chip on" data-scope="follow" data-i18n="ui.scopeFollow">跟随当前项目</span>
+      <span class="chip" data-scope="all" data-i18n="ui.scopeAll">全部项目</span>
     </div>
   </section>
 </main>
@@ -515,6 +577,20 @@ const I18N = {
     "ui.msgPlaceholder":"输入消息… (Enter=prompt · 流式中 Enter=steer / Alt+Enter=follow_up)",
     "ui.queued":"◈ 2 QUEUED",
     "ui.tlHead":"live · delta 已聚合",
+    "ui.histCol":"历史会话",
+    "ui.histHead":"会话历史 · 按项目归类",
+    "ui.scopeFollow":"跟随当前项目",
+    "ui.scopeAll":"全部项目",
+    "ui.projTitle":"项目目录",
+    "ui.projLabel":"项目：",
+    "ui.apply":"应用",
+    "ui.cancel":"取消",
+    "ui.browse":"浏览…",
+    "ui.recent":"最近项目",
+    "ui.recentEmpty":"暂无其他项目",
+    "ui.browseOpening":"打开中…",
+    "ui.confirmTitle":"切换项目",
+    "ui.confirmYes":"确认切换",
     "svg.grpEntry":"① 入口 · Entry",
     "svg.pEntry":"4 种方式启动 pi",
     "svg.nFacesRpc":"面板走 rpc 这一路",
@@ -555,6 +631,20 @@ const I18N = {
     "ui.msgPlaceholder":"Type a message… (Enter=prompt · during stream Enter=steer / Alt+Enter=follow_up)",
     "ui.queued":"◈ 2 QUEUED",
     "ui.tlHead":"live · deltas aggregated",
+    "ui.histCol":"History",
+    "ui.histHead":"Session history · grouped by project",
+    "ui.scopeFollow":"Follow current project",
+    "ui.scopeAll":"All projects",
+    "ui.projTitle":"Project directory",
+    "ui.projLabel":"Project: ",
+    "ui.apply":"Apply",
+    "ui.cancel":"Cancel",
+    "ui.browse":"Browse…",
+    "ui.recent":"Recent projects",
+    "ui.recentEmpty":"No other projects yet",
+    "ui.browseOpening":"Opening…",
+    "ui.confirmTitle":"Switch project",
+    "ui.confirmYes":"Confirm switch",
     "svg.grpEntry":"① Entry",
     "svg.pEntry":"4 ways to start pi",
     "svg.nFacesRpc":"Dashboard uses the rpc path",
@@ -769,8 +859,11 @@ const STATELABEL={idle:"IDLE",busy:"BUSY",wait:"WAITING",err:"ERROR"};
 function setState(st){document.body.className="st-"+st;$("#statustext").textContent=STATELABEL[st];}
 
 /* ============ 真实事件归一化（pi → dashboard） ============ */
-function handlePiEvent(e){
+function handlePiEvent(raw){
+  const piType = raw && typeof raw==="object" ? raw.piType : null;
+  let e = raw;
   if(e&&typeof e==="object"&&e.piType&&e.data)e=e.data; // 解包 hub 的 DashboardEvent {piType,data}
+  if(piType && typeof piType==="string" && piType.startsWith("sys.")){ handleSys(piType.slice(4), e, raw); return; }
   const t=e.type;
   switch(t){
     case "agent_start": agentBusy=true;setState("busy");tlRow("turn","AGENT·START","run begin");break;
@@ -860,6 +953,10 @@ function safeHandle(e){
   try{handlePiEvent(e);}
   catch(err){console.error("[dash] event failed:",e?.type??e?.piType,err);try{tlRow("meta","SKIP","事件处理异常: "+String(err.message??err).slice(0,80));}catch{/* noop */}}
 }
+function handleSys(detail, data, raw){
+  if(detail==="cwd"){ updateProjectLabel((data&&data.cwd)||""); return; }
+  tlRow("meta","SYS",detail); if(data&&data.error)setState("err");
+}
 
 /* ============ extension_ui_request 交互卡 ============ */
 function renderExtUi(e){
@@ -897,6 +994,7 @@ function connect(){
     if(msg.type==="event"){safeHandle(msg.ev);}
     else if(msg.type==="replay"){for(const ev of msg.events)safeHandle(ev);}
     else if(msg.type==="denied"){stageLabel("DENIED · 命令被拒");}
+    else if(msg.type==="cmd_result"){const cb=cmdWaiters.get(msg.id); if(cb){cmdWaiters.delete(msg.id); cb(msg);}}
   };
   ws.onclose=()=>{stageLabel("LINK DOWN · 重连中…");setState("err");
     const base=1000,cap=30000;
@@ -905,9 +1003,110 @@ function connect(){
     setTimeout(connect,delay);};
 }
 connect();
+/* ============ 项目目录控制 + 历史会话 ============ */
+let currentProject = "";
+let histScope = "follow";
+let histCache = [];
+const cmdWaiters = new Map();
+let cmdSeq = 0;
+function wsSendCmd(obj){
+  return new Promise((resolve)=>{
+    const id = "c"+(++cmdSeq);
+    cmdWaiters.set(id, resolve);
+    wsSend(Object.assign({id}, obj));
+    setTimeout(()=>{ if(cmdWaiters.has(id)){ cmdWaiters.delete(id); resolve({success:false, error:"timeout"}); } }, 15000);
+  });
+}
+function normPath(p){ return (p||"").replace(/\\/g,"/").replace(/\/+$/,"").toLowerCase(); }
+function updateProjectLabel(cwd){
+  currentProject = cwd||"";
+  const v=$("#projval"); if(v) v.textContent = cwd ? (cwd.length>46 ? cwd.slice(0,20)+"…"+cwd.slice(-23) : cwd) : "—";
+  const pi=$("#projinput"); if(pi && document.activeElement!==pi) pi.value=cwd||"";
+  if($("#tlcol").dataset.tab==="history") renderHistory();
+}
+function confirmTextForPath(p){
+  const en = document.body.classList.contains("lang-en");
+  return en
+    ? `Switch pi's working directory to:\n${p}\n\nThis restarts pi; the current live session will be interrupted. Confirm?`
+    : `即将把 pi 的工作目录切换到：\n${p}\n\n切换会重启 pi，当前实时会话会中断。确认？`;
+}
+function refreshHistory(){
+  fetch(`/api/history?t=${TOKEN}`).then(r=>r.json()).then(arr=>{ histCache = Array.isArray(arr)?arr:[]; renderHistory(); renderRecentProjects(); }).catch(()=>{ histCache=[]; renderHistory(); renderRecentProjects(); });
+}
+function renderHistory(){
+  const feed=$("#histfeed"); if(!feed) return;
+  feed.innerHTML="";
+  const cur=normPath(currentProject);
+  const rows=histCache.filter(h=> histScope==="all" ? true : normPath(h.projectCwd)===cur);
+  const hc=$("#histcount"); if(hc) hc.textContent=rows.length+" SES";
+  if(!rows.length){ feed.innerHTML=`<div class="empty">${histScope==="all"?"NO HISTORY":"当前项目无历史会话"}</div>`; return; }
+  for(const h of rows){
+    const proj = h.projectCwd ? h.projectCwd : "未知项目";
+    const isCur = normPath(proj)===cur;
+    const div=document.createElement("div"); div.className="tlrow";
+    div.innerHTML=`<span class="tag">${isCur?"●":"○"}</span><span class="sum">${esc(h.file)}</span>`;
+    div.title=`${proj}\n${h.file}\n${h.size} bytes · ${h.mtime}`;
+    feed.appendChild(div);
+  }
+}
+let pendingProjectPath="";
+$("#projctl").addEventListener("click",()=>{ const pp=$("#projpop"); pp.hidden=!pp.hidden; if(!pp.hidden){ const i=$("#projinput"); i.value=currentProject||""; i.focus(); i.select(); if(!histCache.length) refreshHistory(); renderRecentProjects(); } });
+function renderRecentProjects(){
+  const box=$("#projrecent"); if(!box) return;
+  const seen=new Set(); const items=[];
+  for(const h of histCache){
+    const cwd=h.projectCwd; if(!cwd) continue;
+    const n=normPath(cwd);
+    if(n===normPath(currentProject)) continue;
+    if(seen.has(n)) continue;
+    seen.add(n); items.push(cwd);
+  }
+  if(!items.length){ const t=document.body.classList.contains("lang-en")?(I18N.en["ui.recentEmpty"]||"No other projects yet"):(I18N.zh["ui.recentEmpty"]||"暂无其他项目"); box.innerHTML=`<div class="pp-rec-empty">${esc(t)}</div>`; return; }
+  box.innerHTML="";
+  for(const cwd of items){
+    const d=document.createElement("div"); d.className="pp-rec-item"; d.textContent=cwd; d.title=cwd;
+    d.addEventListener("click",()=>{ const i=$("#projinput"); if(i){i.value=cwd;i.focus();i.select();} box.querySelectorAll(".pp-rec-item").forEach(x=>x.classList.remove("on")); d.classList.add("on"); });
+    box.appendChild(d);
+  }
+}
+$("#proj-browse").addEventListener("click",async()=>{
+  const btn=$("#proj-browse"); const old=btn.textContent; const en=document.body.classList.contains("lang-en");
+  btn.disabled=true; btn.textContent=en?(I18N.en["ui.browseOpening"]||"Opening…"):(I18N.zh["ui.browseOpening"]||"打开中…");
+  const r=await wsSendCmd({type:"pick_directory"});
+  btn.disabled=false; btn.textContent=old;
+  if(r&&r.success&&r.path){ const i=$("#projinput"); if(i){i.value=r.path;i.focus();i.select();} }
+  else if(r&&r.error&&r.error!=="已取消"){ alert((en?"Browse failed: ":"浏览选择失败：")+r.error); }
+});
+$("#proj-cancel").addEventListener("click",()=>{ $("#projpop").hidden=true; });
+$("#proj-apply").addEventListener("click",()=>{
+  const p=$("#projinput").value.trim(); if(!p){ return; }
+  $("#projpop").hidden=true;
+  pendingProjectPath=p;
+  $("#confirmtext").textContent=confirmTextForPath(p);
+  $("#confirmbox").hidden=false;
+});
+$("#confirm-no").addEventListener("click",()=>{ $("#confirmbox").hidden=true; pendingProjectPath=""; });
+$("#confirm-yes").addEventListener("click",async()=>{
+  $("#confirmbox").hidden=true;
+  const p=pendingProjectPath; pendingProjectPath=""; if(!p) return;
+  const r=await wsSendCmd({type:"set_project", cwd:p});
+  if(r && r.success){ refreshHistory(); } else { alert("切换失败："+(r&&r.error||"未知错误")); }
+});
+document.querySelectorAll(".coltab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".coltab").forEach(x=>x.classList.toggle("on", x===t));
+  $("#tlcol").dataset.tab=t.dataset.tab;
+  if(t.dataset.tab==="history") refreshHistory();
+}));
+document.querySelectorAll("#histfilters .chip").forEach(c=>c.addEventListener("click",()=>{
+  document.querySelectorAll("#histfilters .chip").forEach(x=>x.classList.toggle("on", x===c));
+  histScope=c.dataset.scope; renderHistory();
+}));
+
 fetch(`/api/state?t=${TOKEN}`).then(r=>r.json()).then(s=>{
   if(s.state?.sessionFile)$("#sessionpath").textContent=s.state.sessionFile;
   if(s.state?.model?.id)$("#modelbadge").textContent=`${s.state.model.provider} · ${s.state.model.id}`;
+  if(s.cwd) updateProjectLabel(s.cwd);
+  refreshHistory();
 }).catch(()=>{});
 
 /* ============ 输入：prompt / steer / follow_up ============ */
