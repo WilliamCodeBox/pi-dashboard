@@ -662,6 +662,7 @@ function tlRow(kind,tag,sum,aggKey){
   const feed=$("#tlfeed");
   const row=document.createElement("div");
   row.className="tlrow"; row.dataset.kl=kind;
+  row.style.display=tlRowMatches(kind)?"":"none";
   row.innerHTML=`<span class="num">${String(evCount).padStart(3,"0")}</span><span class="ts">${new Date().toTimeString().slice(0,8)}</span><span class="tag">${tag}</span><span class="sum"></span>`;
   row.querySelector(".sum").textContent=sum;
   row.onclick=()=>{document.querySelectorAll(".tlrow.sel").forEach(r=>r.classList.remove("sel"));row.classList.add("sel");
@@ -671,6 +672,16 @@ function tlRow(kind,tag,sum,aggKey){
   if(feed.children.length%8===0){const r=document.createElement("div");r.className="ruler";feed.appendChild(r);}
   $("#tlcount").textContent=evCount+" EV";
 }
+function tlRowMatches(kind){
+  if(tlFilter.has("all"))return true;
+  return tlFilter.has(kind);
+}
+function tlApplyFilter(){
+  document.querySelectorAll("#tlfeed .tlrow").forEach(r=>{
+    const kind=r.dataset.kl||r.dataset.k;
+    r.style.display=tlRowMatches(kind)?"":"none";
+  });
+}
 let aggRow=null;
 function tlAggRefresh(key){
   const label=key==="llm"?"LLM·DELTA":"THINK·DELTA";
@@ -678,6 +689,7 @@ function tlAggRefresh(key){
     aggRow.innerHTML=`<span class="num">~</span><span class="ts"></span><span class="tag">${label}</span><span class="sum"></span>`;
     aggRow.querySelector(".ts").textContent=new Date().toTimeString().slice(0,8);
     $("#tlfeed").appendChild(aggRow);}
+  aggRow.style.display=tlRowMatches(key)?"":"none";
   aggRow.querySelector(".sum").textContent=(key==="llm"?"text_delta":"thinking_delta")+" ×"+agg[key];
 }
 
@@ -838,7 +850,7 @@ function handlePiEvent(e){
     case "thinking_level_changed": tlRow("meta","THINK·LEVEL",e.level);break;
     case "model_select": tlRow("meta","MODEL",e.model?.id??"");break;
     default:
-      if(t.startsWith("sys.")){tlRow("meta","SYS",e.detail??t);}
+      if(t.startsWith("sys.")){tlRow("meta","SYS",e.detail??t);if(e.error)setState("err");}
       else tlRow("meta",t.toUpperCase(),e.detail??""); // 未知类型透传（版本升级兜底）
   }
 }
@@ -874,15 +886,23 @@ function renderExtUi(e){
 const TOKEN=new URLSearchParams(location.search).get("t")||"";
 function wsUrl(){const p=location.port?`${location.protocol==="https:"?"wss":"ws"}://${location.hostname}:${location.port}/ws?token=${TOKEN}`:`ws://127.0.0.1:7777/ws?token=${TOKEN}`;return p;}
 function wsSend(obj){if(ws&&ws.readyState===1)ws.send(JSON.stringify(obj));}
+let wsRetry=0;
 function connect(){
   ws=new WebSocket(wsUrl());
-  ws.onopen=()=>{$("#modehint").textContent="live";stageLabel("LIVE · --mode rpc 已连接");};
-  ws.onmessage=(m)=>{const msg=JSON.parse(m.data);
+  ws.onopen=()=>{wsRetry=0;setState("idle");$("#modehint").textContent="live";stageLabel("LIVE · --mode rpc 已连接");};
+  ws.onmessage=(m)=>{
+    let msg;
+    try{msg=JSON.parse(m.data);}
+    catch(err){console.warn("[dash] bad ws frame, skipped:",err);return;}
     if(msg.type==="event"){safeHandle(msg.ev);}
     else if(msg.type==="replay"){for(const ev of msg.events)safeHandle(ev);}
     else if(msg.type==="denied"){stageLabel("DENIED · 命令被拒");}
   };
-  ws.onclose=()=>{stageLabel("LINK DOWN · 重连中…");setTimeout(connect,1500);};
+  ws.onclose=()=>{stageLabel("LINK DOWN · 重连中…");setState("err");
+    const base=1000,cap=30000;
+    const delay=Math.min(cap,base*Math.pow(2,wsRetry))+Math.random()*base;
+    wsRetry++;
+    setTimeout(connect,delay);};
 }
 connect();
 fetch(`/api/state?t=${TOKEN}`).then(r=>r.json()).then(s=>{
@@ -897,9 +917,8 @@ function sendInput(v,behavior){
   wsSend({type:behavior==="followUp"?"follow_up":behavior==="steer"?"steer":"prompt",message:v});
   $("#modehint").textContent=behavior==="followUp"?"follow_up":behavior==="steer"?"steer":"prompt";
 }
-$("#btn-send").onclick=()=>{const v=$("#msgbox").value.trim();if(!v)return;$("#msgbox").value="";
-  const e=window.event;
-  sendInput(v,(e&&(e.altKey||e.ctrlKey))?"followUp":null);};
+$("#btn-send").addEventListener("click",(e)=>{const v=$("#msgbox").value.trim();if(!v)return;$("#msgbox").value="";
+  sendInput(v,(e.altKey||e.ctrlKey)?"followUp":null);});
 $("#msgbox").addEventListener("keydown",e=>{
   if(e.key!=="Enter")return;
   e.preventDefault();
@@ -966,13 +985,29 @@ $("#btn-demo").onclick=async()=>{
 };
 document.querySelectorAll("[data-st]").forEach(b=>b.addEventListener("click",()=>setState(b.dataset.st)));
 document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{c.classList.toggle("on");
-  tlFilter=new Set([...document.querySelectorAll(".chip.on")].map(x=>x.dataset.f));}));
+  tlFilter=new Set([...document.querySelectorAll(".chip.on")].map(x=>x.dataset.f));tlApplyFilter();
+  try{localStorage.setItem("pidash-tlfilter",JSON.stringify([...tlFilter]));}catch(e){}}));
 
 /* ============ 初始化语言（记忆上次选择，默认中文） ============ */
 (function initLang(){
   let lang = "zh";
   try{ const s = localStorage.getItem("pidash-lang"); if(s==="en"||s==="zh") lang=s; }catch(e){}
   setLang(lang);
+})();
+
+/* ============ 初始化时间线筛选（记忆上次选择，默认全开） ============ */
+(function initTlFilter(){
+  try{
+    const s = localStorage.getItem("pidash-tlfilter");
+    if(s){
+      const arr = JSON.parse(s);
+      if(Array.isArray(arr)){
+        tlFilter = new Set(arr);
+        document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", tlFilter.has(c.dataset.f)));
+        tlApplyFilter();
+      }
+    }
+  }catch(e){}
 })();
 </script>
 </body>

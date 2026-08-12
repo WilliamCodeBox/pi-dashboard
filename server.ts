@@ -12,6 +12,7 @@ import { Bridge } from "./bridge.ts";
 import { Hub } from "./hub.ts";
 
 const PORT = Number(process.env.PI_DASH_PORT ?? 7777);
+let actualPort = PORT;
 const CWD = process.argv.find((a) => a.startsWith("--cwd="))?.slice(6) ?? process.cwd();
 const PUBLIC = path.join(import.meta.dirname, "public");
 const TOKEN = crypto.randomBytes(12).toString("hex");
@@ -29,17 +30,18 @@ bridge.handshake().then((st) => {
 }).catch((err) => hub.sys("handshake", { error: String(err) }));
 
 const allowedCommands = new Set(["prompt", "steer", "follow_up", "abort"]);
-const ALLOWED_ORIGINS = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
+let ALLOWED_ORIGINS = new Set([`http://127.0.0.1:${actualPort}`, `http://localhost:${actualPort}`]);
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   // 静态与 API 都校验 Origin（防 DNS rebinding；本地工具，够用）
   const origin = req.headers.origin;
+  // token + Origin 校验：静态与 API 共用同一道闸，避免静态路由绕过鉴权
+  if (origin && !ALLOWED_ORIGINS.has(origin)) { res.writeHead(403); res.end("forbidden"); return; }
+  if (url.searchParams.get("t") !== TOKEN) { res.writeHead(401); res.end("unauthorized"); return; }
   if (url.pathname.startsWith("/api/")) {
-    if (origin && !ALLOWED_ORIGINS.has(origin)) { res.writeHead(403); res.end("forbidden"); return; }
-    if (url.searchParams.get("t") !== TOKEN) { res.writeHead(401); res.end("unauthorized"); return; }
-    if (url.pathname === "/api/state") { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ state: bridge.lastState, bridge: bridge.state })); return; }
-    if (url.pathname === "/api/history") { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(listSessions())); return; }
+    if (url.pathname === "/api/state") { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify({ state: bridge.lastState, bridge: bridge.state })); return; }
+    if (url.pathname === "/api/history") { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(listSessions())); return; }
     res.writeHead(404); res.end(); return;
   }
   if (url.pathname === "/" || url.pathname === "/index.html") {
@@ -50,7 +52,7 @@ const server = http.createServer((req, res) => {
   res.writeHead(404); res.end();
 });
 
-const wss = new WebSocketServer({ noServer: true });
+const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 * 1024 });
 server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const okToken = url.searchParams.get("token") === TOKEN;
@@ -103,9 +105,29 @@ function listSessions() {
   } catch { return []; }
 }
 
-server.listen(PORT, "127.0.0.1", () => {
+function tryListen(port: number) {
+  actualPort = port;
+  ALLOWED_ORIGINS = new Set([`http://127.0.0.1:${actualPort}`, `http://localhost:${actualPort}`]);
+  const onErr = (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE" && port < PORT + 10) {
+      console.warn(`[dash] port ${port} in use, trying ${port + 1}…`);
+      tryListen(port + 1);
+    } else {
+      console.error(`[dash] fatal: cannot bind ${port}: ${err.code}`);
+      process.exit(1);
+    }
+  };
+  server.once("error", onErr);
+  server.listen(port, "127.0.0.1");
+}
+
+tryListen(PORT);
+
+// Single 'listening' listener — fires exactly once when a bind finally succeeds,
+// printing the banner with the actually-bound (reachable) port. No accumulation.
+server.once("listening", () => {
   console.log("[dash] ============================================");
-  console.log(`[dash]  URL    http://127.0.0.1:${PORT}/?t=${TOKEN}`);
+  console.log(`[dash]  URL    http://127.0.0.1:${actualPort}/?t=${TOKEN}`);
   console.log(`[dash]  cwd    ${CWD}`);
   console.log(`[dash]  token  ${TOKEN}`);
   console.log("[dash] ============================================");
