@@ -1,0 +1,6 @@
+{"type":"agent_start","sessionId":"sess-demo-001","cwd":"/home/pi/proj"}
+{"type":"turn_start","sessionId":"sess-demo-001"}
+{"type":"message_start","sessionId":"sess-demo-001","message":{"role":"assistant","model":"deepseek-v4-flash","provider":"deepseek"}}
+{"type":"message_update","sessionId":"sess-demo-001","assistantMessageEvent":{"type":"text_delta","delta":"正在分析你的请求…"}}
+{"type":"tool_execution_start","sessionId":"sess-demo-001","toolName":"bash","toolCallId":"tc-1"}
+{"type":"message_end","sessionId":"sess-demo-001","message":{"role":"assistant","stopReason":"end_turn","usage":{"output":42}}}

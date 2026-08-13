@@ -5,13 +5,28 @@
   "main": "index.js",
   "scripts": {
     "start": "node --experimental-strip-types server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch --experimental-strip-types server.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --experimental-strip-types --test",
+    "test:watch": "node --experimental-strip-types --test --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
   "dependencies": {
     "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^10.8.1",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0"
   }
 }
